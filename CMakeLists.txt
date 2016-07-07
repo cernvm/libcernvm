@@ -400,12 +400,15 @@ endif()
 # Libraries
 target_link_libraries ( ${PROJECT_NAME} ${PROJECT_LIBRARIES} )
 
-# Expose everything to the parent context
-set( CERNVM_LIBRARIES 
-	${PROJECT_NAME} 
-	${PROJECT_LIBRARIES}
-	PARENT_SCOPE )
-set( CERNVM_INCLUDE_DIRS
-	${PROJECT_SOURCE_DIR}/include 	# Library includes
-	${PROJECT_INCLUDES}				# All includes are for the project too
-	PARENT_SCOPE )
+get_directory_property(hasParent PARENT_DIRECTORY)
+if (hasParent)
+    # Expose everything to the parent context
+    set( CERNVM_LIBRARIES
+        ${PROJECT_NAME}
+        ${PROJECT_LIBRARIES}
+        PARENT_SCOPE )
+    set( CERNVM_INCLUDE_DIRS
+        ${PROJECT_SOURCE_DIR}/include 	# Library includes
+        ${PROJECT_INCLUDES}				# All includes are for the project too
+        PARENT_SCOPE )
+endif()
