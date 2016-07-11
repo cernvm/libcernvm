@@ -191,6 +191,11 @@ public:
     bool						contains 		( const std::string& name, const bool useBlank = false );
 
     /**
+     * Filter (erase) all illegal characters from the parameter's value. Return false if the value was completely erased
+     */
+    bool						filterParameter	( const std::string& parameter );
+
+    /**
      * Update all the parameters from the specified map
      */
     void						fromMap			( std::map< const std::string, const std::string> * map, bool clearBefore = false, const bool replace = true );

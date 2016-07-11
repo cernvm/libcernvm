@@ -286,6 +286,54 @@ bool ParameterMap::contains ( const std::string& name, const bool useBlank ) {
 }
 
 /**
+ * Return false if a parameter was completely erased
+ */
+bool ParameterMap::filterParameter ( const std::string& parameter ) {
+    CRASH_REPORT_BEGIN;
+
+    if (! this->contains(parameter)) {
+        CVMWA_LOG("Debug", "filterParameter: given parameter is not inside the map: " << parameter);
+        return true;
+    }
+
+    std::string value = this->get(parameter);
+    bool valueWithInvalidChar = false;
+
+    //check if the value contains illegal characters, if so, erase it
+    for (std::string::iterator it = value.begin(); it != value.end(); ) {
+        if (SAFE_KEY_CHARS.find(*it) == std::string::npos) {
+            valueWithInvalidChar = true;
+            it = value.erase(it);
+        }
+        else
+            ++it;
+    }
+
+    //save the new value if necessary
+    if (valueWithInvalidChar) {
+        CVMWA_LOG("Debug", "Filtered parameter's ('" << parameter << "') value from '" << this->get(parameter) << "' to: '" << value << "'");
+        {
+            // Mutex for thread-safety
+            boost::unique_lock<boost::mutex> lock(*parametersMutex);
+            putOnMap(this->parameters, prefix+parameter, value);
+        }
+
+        // If we are not locked, sync changes.
+        // Oherwise mark us as dirty
+        if (!locked) {
+            commitChanges();
+        } else {
+            changed = true;
+        }
+        if (value.empty()) return false; //value was made only from illegal chars
+    }
+
+    return true;
+
+    CRASH_REPORT_END;
+}
+
+/**
  * Update all the parameters from the specified map
  */
 void ParameterMap::fromParameters ( const ParameterMapPtr& ptr, bool clearBefore, const bool replace ) {
