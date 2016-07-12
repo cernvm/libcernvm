@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 2.8)
 set( HV_NAMES Virtualbox )
 
 # Guess system architecture
-set(GUESS_ARCH "i386") 							# 1) Fallback to x86
+set(GUESS_ARCH "x86_64") 							# 1) Fallback to x86_64
 if(CMAKE_SYSTEM_PROCESSOR) 						# 2) Build on the same processor
 	set(GUESS_ARCH ${CMAKE_SYSTEM_PROCESSOR})
 	if(${GUESS_ARCH} STREQUAL "AMD64")
@@ -355,6 +355,11 @@ include_directories( ${PROJECT_SOURCE_DIR}/include )
 include_directories( ${PROJECT_SOURCE_DIR}/src )
 include_directories( ${PROJECT_INCLUDES} )
 
+# Enable C++11 extensions
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+
 # Add additional definitions used in the library
 if (WIN32)
 	IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
@@ -363,6 +368,17 @@ if (WIN32)
 	  add_definitions(/D "NDEBUG")
 	ENDIF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 else(WIN32)
+    #Avoid complaining about auto_ptr usage
+    add_definitions(-Wno-deprecated)
+    # Add c++11 support
+    if(COMPILER_SUPPORTS_CXX11)
+        add_definitions(-std=c++11)
+    elseif(COMPILER_SUPPORTS_CXX0X)
+        add_definitions(-std=c++0x)
+    else()
+            message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+    endif()
+
 	IF (${CMAKE_BUILD_TYPE} MATCHES "Debug")
 	  add_definitions(-DDEBUG)   
 	ELSE (${CMAKE_BUILD_TYPE} MATCHES "Debug")
