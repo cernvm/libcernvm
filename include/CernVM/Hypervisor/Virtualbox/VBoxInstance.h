@@ -58,6 +58,8 @@ public:
         CRASH_REPORT_END;
     };
 
+    virtual ~VBoxInstance() { }
+
 
     /////////////////////////
     // HVInstance Overloads

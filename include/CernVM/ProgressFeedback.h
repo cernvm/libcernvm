@@ -54,7 +54,7 @@ public:
 	//////////////////////
 	ProgressTask() 
 		: CallbacksProgress(), __lastEventTime(0), parent(), lastMessage(""), started(false), completed(false) { };
-
+	virtual ~ProgressTask() { }
 
 	//////////////////////
 	// Event handlers
@@ -176,6 +176,7 @@ public:
 	//////////////////////
 
 	FiniteTask() : ProgressTask(), tasks(), taskObjects(), taskIndex(0) { };
+	virtual ~FiniteTask() { }
 
 	/**
 	 * Define the maximum number of tasks
@@ -253,6 +254,7 @@ class VariableTask: public ProgressTask {
 public:
 
 	VariableTask() : ProgressTask(), max(0), current(0), showSpinner(true), spinnerIndex(0) { };
+	virtual ~VariableTask() { }
 
 	/**
 	 * Update the default message for all the tasks 
@@ -318,6 +320,7 @@ class BooleanTask: public ProgressTask {
 public:
 
 	BooleanTask() : ProgressTask() { };
+	virtual ~BooleanTask() { }
 
     /**
      * Reset state and restart

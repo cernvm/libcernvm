@@ -270,7 +270,9 @@ public:
 
         CRASH_REPORT_END;
     };
-    
+
+    virtual ~HVSession() {}
+
     ////////////////////////////////////////
     // Session variables
     ////////////////////////////////////////
@@ -428,9 +430,10 @@ public:
 
     /**
      * Hypervisor instance constructor
-     */    
+     */
     HVInstance();
-    
+    virtual ~HVInstance() { }
+
     ////////////////////////////////////////
     // Common variables
     ////////////////////////////////////////

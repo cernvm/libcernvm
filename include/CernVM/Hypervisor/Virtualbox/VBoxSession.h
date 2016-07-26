@@ -129,6 +129,7 @@ public:
 
         CRASH_REPORT_END;
     }
+    virtual ~VBoxSession() { }
 
     /////////////////////////////////////
     // FSM implementation functions 
