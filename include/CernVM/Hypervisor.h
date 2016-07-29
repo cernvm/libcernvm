@@ -483,9 +483,11 @@ public:
     HVSessionPtr            sessionByName       ( const std::string& name );
 
     /**
-     * Open a session using the specified input parameters
+     * Open a session using the specified input parameters. If checkSecret is 'true', the 'secret' key
+     * in the parameter map is compared to the existing session (if found), in order to prevent
+     * stealing sessions (this is not relevant to the local use).
      */
-    virtual HVSessionPtr    sessionOpen         ( const ParameterMapPtr& parameters, const FiniteTaskPtr& pf );
+    virtual HVSessionPtr    sessionOpen         ( const ParameterMapPtr& parameters, const FiniteTaskPtr& pf, const bool checkSecret=true );
 
     /**
      * Remove a session from the disk

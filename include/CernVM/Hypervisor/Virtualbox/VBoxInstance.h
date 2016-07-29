@@ -65,7 +65,7 @@ public:
     // HVInstance Overloads
     /////////////////////////
 
-    virtual HVSessionPtr    sessionOpen         ( const ParameterMapPtr& parameters, const FiniteTaskPtr& pf );
+    virtual HVSessionPtr    sessionOpen         ( const ParameterMapPtr& parameters, const FiniteTaskPtr& pf, const bool checkSecret=true );
     virtual void            sessionDelete       ( const HVSessionPtr& session );
     virtual void            sessionClose        ( const HVSessionPtr& session );
 

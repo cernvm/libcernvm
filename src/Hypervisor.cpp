@@ -998,7 +998,7 @@ int HVInstance::sessionValidate ( const ParameterMapPtr& parameters ) {
 /**
  * Open or reuse a hypervisor session
  */
-HVSessionPtr HVInstance::sessionOpen( const ParameterMapPtr& parameters, const FiniteTaskPtr & pf ) { 
+HVSessionPtr HVInstance::sessionOpen( const ParameterMapPtr& parameters, const FiniteTaskPtr & pf, const bool checkSecret ) {
     CRASH_REPORT_BEGIN;
     
     // Default unsetted pointer used for invalid responses
@@ -1032,16 +1032,20 @@ HVSessionPtr HVInstance::sessionOpen( const ParameterMapPtr& parameters, const F
     
     // If we found one, continue
     if (sess) {
-        // Validate secret key
-        if (sess->parameters->get("secret","").compare(keyHash) != 0) {
+        // Validate secret key if wanted
+        if (checkSecret && ( sess->parameters->get("secret","").compare(keyHash) != 0 )) {
             // Exists but the password is invalid
+            CVMWA_LOG("Debug", "Session exists, but the password is invalid" );
             return voidPtr;
         }
     } else {
 
         // Otherwise, allocate one
         sess = this->allocateSession();
-        if (!sess) return voidPtr;
+        if (!sess) {
+            CVMWA_LOG("Debug", "Unable to allocate the session." );
+            return voidPtr;
+        }
 
     }
 
@@ -1065,6 +1069,7 @@ HVSessionPtr HVInstance::sessionOpen( const ParameterMapPtr& parameters, const F
     openSessions.push_back( sess );
     
     // Return the handler
+    CVMWA_LOG("Debug", "Successfully reached end" );
     return sess;
     CRASH_REPORT_END;
 }

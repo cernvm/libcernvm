@@ -561,12 +561,17 @@ HVSessionPtr VBoxInstance::sessionByVBID ( const std::string& virtualBoxGUID ) {
     CRASH_REPORT_END;
 }
 
-HVSessionPtr VBoxInstance::sessionOpen ( const ParameterMapPtr& parameters, const FiniteTaskPtr & pf ) {
+HVSessionPtr VBoxInstance::sessionOpen ( const ParameterMapPtr& parameters, const FiniteTaskPtr & pf, const bool checkSecret ) {
     CRASH_REPORT_BEGIN;
 
     // Call parent function to open session
-    HVSessionPtr  sess = HVInstance::sessionOpen(parameters,pf);
+    HVSessionPtr  sess = HVInstance::sessionOpen(parameters, pf, checkSecret);
     VBoxSessionPtr vbs = boost::static_pointer_cast<VBoxSession>( sess );
+
+    if (!vbs) {
+        CVMWA_LOG("Error", "Opening session failed" );
+        return vbs; //error, returning null pointer
+    }
 
     // Set progress feedack object
     vbs->FSMUseProgress( pf, "Updating VM information" );
