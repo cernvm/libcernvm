@@ -634,7 +634,7 @@ void VBoxSession::ConfigureVM() {
 
         // 10) Enable graphical additions if instructed to do so
         if ((flags & HVF_GRAPHICAL) != 0) {
-            args << " --draganddrop "       << "hosttoguest"
+            args << " --draganddrop "       << "bidirectional"
                  << " --clipboard "         << "bidirectional";
         }
 
