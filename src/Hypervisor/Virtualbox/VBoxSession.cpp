@@ -2443,6 +2443,7 @@ int VBoxSession::mountDisk ( const std::string & controller,
 
 /**
  * Return the folder where we can store the VM disks.
+ * First, we try to get the local/baseFolder. Then we try the machine/Config file record.
  */
 std::string VBoxSession::getDataFolder ( ) {
     CRASH_REPORT_BEGIN;
@@ -2452,16 +2453,21 @@ std::string VBoxSession::getDataFolder ( ) {
     if (!this->dataPath.empty())
         return this->dataPath;
 
+    string rawRecord;
+    // Find base folder
+    if (local->contains("baseFolder"))
+        rawRecord = local->get("baseFolder");
     // Find configuration folder
-    if (machine->contains("Config file")) {
-        string settingsFolder = machine->get("Config file");
+    else if (machine->contains("Config file"))
+        rawRecord = machine->get("Config file");
 
+    if (!rawRecord.empty()) {
         // Strip quotation marks
-        if ((settingsFolder[0] == '"') || (settingsFolder[0] == '\''))
-            settingsFolder = settingsFolder.substr( 1, settingsFolder.length() - 2);
+        if ((rawRecord[0] == '"') || (rawRecord[0] == '\''))
+            rawRecord = rawRecord.substr( 1, rawRecord.length() - 2);
 
         // Strip the settings file (leave path) and store it on dataPath
-        this->dataPath = stripComponent( settingsFolder );
+        this->dataPath = stripComponent( rawRecord );
     }
 
     // Return folder

@@ -262,9 +262,11 @@ protected:
     boost::mutex *              parametersMutex;
 
     /**
-     * Helper function to perform []= on const map
+     * Helper function to perform []= on const map. We do not use references to key and value on purpose,
+     * because in that case things might go crazy in some corner cases: first part of value is getting
+     * overrided by random values.
      */
-    void						putOnMap( ParameterDataMapPtr map, const std::string& key, const std::string& value);
+    void						putOnMap( ParameterDataMapPtr map, const std::string key, const std::string value);
 
 };
 

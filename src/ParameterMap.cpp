@@ -27,7 +27,7 @@ const std::string SAFE_KEY_CHARS("0123456789_-abcdefghijklmnopqrstuvwxyzABCDEFGH
 /**
  * Helper to replace key on the const map
  */
-void ParameterMap::putOnMap( ParameterDataMapPtr map, const std::string& key, const std::string& value) {
+void ParameterMap::putOnMap( ParameterDataMapPtr map, const std::string key, const std::string value) {
     std::map< const std::string, const std::string >::iterator it = map->find(key);
     if (it != map->end()) map->erase(it);
     map->insert(std::make_pair(key, value));
@@ -353,7 +353,7 @@ void ParameterMap::fromParameters ( const ParameterMapPtr& ptr, bool clearBefore
         if (replace || (this->parameters->find(k) == this->parameters->end())) {
             // Mutex for thread-safety
             boost::unique_lock<boost::mutex> lock(*parametersMutex);
-            putOnMap(this->parameters, k, (*ptr->parameters)[*it]);
+            putOnMap(this->parameters, k, ptr->parameters->at(*it));
         }
     }
 
