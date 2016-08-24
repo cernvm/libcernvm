@@ -268,6 +268,9 @@ public:
         this->state = parameters->getNum<int>("state", 0);
         this->hypervisor = hv;
 
+        // Seed random generator
+        srand(getMillis());
+
         CRASH_REPORT_END;
     };
 
