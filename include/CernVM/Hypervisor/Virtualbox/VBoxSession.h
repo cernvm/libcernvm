@@ -203,8 +203,10 @@ public:
 
     /**
      *  Compile the user data and return it's string representation
+     *  If macroReplace is true, the libcernvm macro procedure is performed
+     *  (i.e. ${variable_name[:default]} substitution). See the docs for more details/
      */
-    std::string             getUserData         ();
+    std::string             getUserData         (bool macroReplace=false);
 
     /**
      * Override to get notified when state is changed

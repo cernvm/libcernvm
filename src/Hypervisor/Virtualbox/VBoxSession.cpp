@@ -2171,14 +2171,14 @@ void VBoxSession::errorOccured ( const std::string & str, int errNo ) {
 /**
  *  Compile the user data and return it's string representation
  */
-std::string VBoxSession::getUserData ( ) {
+std::string VBoxSession::getUserData ( bool macroReplace ) {
     CRASH_REPORT_BEGIN;
     if (isAborting) return "";
     std::string patchedUserData = parameters->get("userData", "");
 
     // Update local userData
-    if ( !patchedUserData.empty() ) {
-        patchedUserData = macroReplace( userData, patchedUserData );
+    if ( macroReplace && !patchedUserData.empty() ) {
+        patchedUserData = ::macroReplace( userData, patchedUserData );
     }
 
     // Return user data

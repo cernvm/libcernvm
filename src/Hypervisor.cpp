@@ -384,12 +384,9 @@ int HVInstance::buildContextISO ( std::string userData, std::string * filename, 
     CRASH_REPORT_BEGIN;
     ofstream isoFile;
     string iso = getTmpFile(".iso", folder);
-    
-    string ctxFileContents = base64_encode( userData );
-    ctxFileContents = "EC2_USER_DATA=\"" +ctxFileContents + "\"\nONE_CONTEXT_PATH=\"/var/lib/amiconfig\"\n";
-    const char * fData = ctxFileContents.c_str();
-    
-    char * data = build_simple_cdrom( "CONTEXT_INFO", "CONTEXT.SH", fData, ctxFileContents.length() );
+
+    char * data = build_ami_ci_cdrom("CONFIG-2", userData.c_str(), userData.length());
+
     isoFile.open( iso.c_str(), std::ios_base::out | std::ios_base::binary );
     if (!isoFile.fail()) {
         isoFile.write( data, CONTEXTISO_CDROM_SIZE );

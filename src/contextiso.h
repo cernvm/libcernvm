@@ -31,6 +31,20 @@
 static const int CONTEXTISO_CDROM_SIZE = 358400;
 
 /**
+ * Create a CD-ROM image that will contain our outlined layout:
+ * /ec2/latest{meta-data.json,user-data} and /openstack/latest/{meta_data.json,user_data}.
+ * Contents of the meta data and user data files are the same, respectively.
+ * The /ec2 section gets picked up by the amiconfig agent, while the /openstack one by the cloud init agent.
+ *
+ * @param volume        The name of the volume (CD-ROM Label)
+ * @param contents      The buffer to copy the file contents from
+ * @param szContents    The size of the content.
+ *
+ * @return              Returns the contents of the CD-ROM buffer. The length of the buffer is CONTEXTISO_CDROM_SIZE
+ */
+char * build_ami_ci_cdrom( const char * volume, const char * contents, int szContents );
+
+/**
  * Create a CD-ROM image that will contain the specified filename with the specified content
  *
  * @param volume        The name of the volume (CD-ROM Label)
@@ -47,6 +61,6 @@ char * build_simple_cdrom( const char * volume, const char * filename, const cha
  *
  * This function will call build_cd with the appropriate parameters to create a file called CONTEXT.SH with the contents specified
  */
-char * build_context_cdrom( const char * user_data ) { return build_simple_cdrom("CONFIGDISK", "CONTEXT.SH", user_data, strlen(user_data)); };
+char * build_context_cdrom( const char * user_data ) { return build_simple_cdrom("CONFIGDISK", "CONTEXT.SH", user_data, strlen(user_data)); }
 
 #endif
