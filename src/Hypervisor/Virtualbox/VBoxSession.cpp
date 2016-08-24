@@ -358,6 +358,8 @@ void VBoxSession::CreateVM() {
 
     // Extract flags
     int flags = parameters->getNum<int>("flags", 0);
+    // Extract name
+    string name = parameters->get("name");
 
     // Check what kind of VM to create
     string osType = "Linux26";
@@ -370,7 +372,7 @@ void VBoxSession::CreateVM() {
     // Create and register a new VM
     args.str("");
     args << "createvm"
-        << " --name \"" << parameters->get("name") << "\""
+        << " --name \"" << name << "\""
         << " --ostype " << osType
         << " --basefolder \"" << baseFolder << "\""
         << " --register";
@@ -389,7 +391,7 @@ void VBoxSession::CreateVM() {
     if (ans == 500) {
 
         // Try to fetch VM info by name
-        map<const string, const string> info = getMachineInfo( "\"" + parameters->get("name") + "\"" );
+        map<const string, const string> info = getMachineInfo( "\"" + name + "\"" );
         if (info.find(":ERROR:") != info.end()) {
             errorOccured("VM already exists, but could not obtain VirtualBox reflection information.", HVE_CREATE_ERROR);
             return;
@@ -2454,12 +2456,15 @@ std::string VBoxSession::getDataFolder ( ) {
         return this->dataPath;
 
     string rawRecord;
+    bool stripComponentPath = false;
     // Find base folder
     if (local->contains("baseFolder"))
         rawRecord = local->get("baseFolder");
     // Find configuration folder
-    else if (machine->contains("Config file"))
+    else if (machine->contains("Config file")) {
         rawRecord = machine->get("Config file");
+        stripComponentPath = true; //Config file is a file, not a folder
+    }
 
     if (!rawRecord.empty()) {
         // Strip quotation marks
@@ -2467,7 +2472,10 @@ std::string VBoxSession::getDataFolder ( ) {
             rawRecord = rawRecord.substr( 1, rawRecord.length() - 2);
 
         // Strip the settings file (leave path) and store it on dataPath
-        this->dataPath = stripComponent( rawRecord );
+        if (stripComponentPath)
+            rawRecord = stripComponent(rawRecord);
+
+        this->dataPath = rawRecord;
     }
 
     // Return folder
