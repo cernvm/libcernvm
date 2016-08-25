@@ -527,7 +527,7 @@ void VBoxSession::ConfigureVM() {
 
     // Find a random free port for VRDE
     int rdpPort = local->getNum<int>("rdpPort", 0);
-    if (rdpPort == 0) {
+    if (rdpPort == 0 || isPortOpen("127.0.0.1", rdpPort)) {
         rdpPort = getFreePort("127.0.0.1");
         local->setNum<int>("rdpPort", rdpPort);
     }
