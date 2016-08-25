@@ -357,6 +357,11 @@ int                                                 splitArguments  ( std::strin
 bool                                                isPortOpen      ( const char * host, int port, unsigned char handshake = HSK_NONE, int timeoutSec = 1 );
 
 /**
+ * Get a random free port (higher than 1024)
+ */
+int                                                 getFreePort     ( const char * host );
+
+/**
  * Minimalistic HTTP GET helper (used for inter-process WebRPC interaction)
  */
 bool                                                minHttpGet      ( const char * host, int port, const char * path, int timeoutSec = 1 );

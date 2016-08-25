@@ -1775,6 +1775,17 @@ bool isPortOpen( const char * host, int port, unsigned char handshake, int timeo
 }
 
 /**
+ * Return a free port
+ */
+int getFreePort( const char * host ) {
+    int port = (rand() % 0xFBFF) + 1024;
+    while (isPortOpen( host, port ))
+        port = (rand() % 0xFBFF) + 1024;
+
+    return port;
+}
+
+/**
  * Perform a minimalistic HTTP GET request
  */
 bool minHttpGet( const char * host, int port, const char * path, int timeoutSec ) {

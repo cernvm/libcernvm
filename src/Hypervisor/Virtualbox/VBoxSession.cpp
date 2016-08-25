@@ -528,9 +528,7 @@ void VBoxSession::ConfigureVM() {
     // Find a random free port for VRDE
     int rdpPort = local->getNum<int>("rdpPort", 0);
     if (rdpPort == 0) {
-        rdpPort = (rand() % 0xFBFF) + 1024;
-        while (isPortOpen( "127.0.0.1", rdpPort ))
-            rdpPort = (rand() % 0xFBFF) + 1024;
+        rdpPort = getFreePort("127.0.0.1");
         local->setNum<int>("rdpPort", rdpPort);
     }
 
@@ -659,19 +657,37 @@ void VBoxSession::ConfigureVM() {
     }
 
     // We add the NIC rules in a separate step, because if the NIC was previously
-    // disabled, there was no way to know which rules there were applied 
+    // disabled, there was no way to know which rules there were applied
     if ((flags & HVF_DUAL_NIC) == 0) {
+        // If our previous port is taken, find a free port
+        if (isPortOpen("127.0.0.1", this->getAPIPort())) {
+            // First we need to delete the rule, if it already exists
+            args.str("");
+            args << "modifyvm " << parameters->get("vboxid")
+                << " --natpf1" << " delete" << " guestapi";
+
+            // Use custom execConfig to ignore "nonexisting" errors
+            SysExecConfig localExecCfg( execConfig );
+            localExecCfg.handleErrString( "Code NS_ERROR_INVALID_ARG (0x80070057) - Invalid argument value (extended info not available)", 256 );
+            this->wrapExec(args.str(), &lines, NULL, localExecCfg);
+
+            // Save the new port
+            int newPort = getFreePort("127.0.0.1");
+            local->setNum<int>("apiPort", newPort);
+        }
+
+        // Add a new NAT forwarding rule (or submit the same as existing)
         args.str("");
-        args << "modifyvm " 
+        args << "modifyvm "
              << parameters->get("vboxid")
-             << " --natpf1 " << "guestapi,tcp,127.0.0.1," << local->get("apiPort") << ",," << parameters->get("apiPort");
+             << " --natpf1 " << "guestapi,tcp,127.0.0.1," << this->getAPIPort() << ",," << parameters->get("apiPort");
 
         // Use custom execConfig to ignore "already exists" errors
-        SysExecConfig localExecCfg( execConfig );
-        localExecCfg.handleErrString( "A NAT rule of this name already exists", 100 );
+        SysExecConfig localExecCfgCreate( execConfig );
+        localExecCfgCreate.handleErrString( "A NAT rule of this name already exists", 100 );
 
         // Add NAT rule
-        ans = this->wrapExec(args.str(), &lines, NULL, localExecCfg);
+        ans = this->wrapExec(args.str(), &lines, NULL, localExecCfgCreate);
         if ((ans != 0) && (ans != 100)) {
             errorOccured("Unable to modify the Virtual Machine", HVE_EXTERNAL_ERROR);
             return;
@@ -782,9 +798,7 @@ void VBoxSession::ConfigNetwork() {
         if (localApiPort == 0) {
 
             // Find a random free port for API
-            localApiPort = (rand() % 0xFBFF) + 1024;
-            while (isPortOpen( "127.0.0.1", localApiPort ))
-                localApiPort = (rand() % 0xFBFF) + 1024;
+            localApiPort = getFreePort("127.0.0.1");
 
             // Store the API Port info
             local->setNum<int>("apiPort", localApiPort);
