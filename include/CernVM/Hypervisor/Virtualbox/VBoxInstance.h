@@ -70,6 +70,8 @@ public:
     virtual void            sessionClose        ( const HVSessionPtr& session );
 
     virtual int             getType             ( ) { return reflectionValid ? HV_VIRTUALBOX : HV_NONE; };
+    virtual std::vector<std::string>
+                            getRunningMachines  ( );
     virtual int             loadSessions        ( const FiniteTaskPtr & pf = FiniteTaskPtr() );
     virtual bool            waitTillReady       ( DomainKeystore & keystore, const FiniteTaskPtr & pf = FiniteTaskPtr(), const UserInteractionPtr & ui = UserInteractionPtr() );
     virtual HVSessionPtr    allocateSession     ( );

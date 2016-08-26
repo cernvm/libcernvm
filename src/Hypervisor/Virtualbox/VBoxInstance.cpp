@@ -661,6 +661,41 @@ void VBoxInstance::sessionClose( const HVSessionPtr& session ) {
 }
 
 /**
+ * Return all running machine names under the hypervisor
+ */
+std::vector<std::string> VBoxInstance::getRunningMachines( ) {
+    CRASH_REPORT_BEGIN;
+
+    std::vector<std::string> lines, runningVms;
+    std::string err;
+
+    // List the running VMs in the system
+    int ans;
+    NAMED_MUTEX_LOCK("generic");
+    ans = this->exec("list runningvms", &lines, &err, execConfig);
+    NAMED_MUTEX_UNLOCK;
+    if (ans != 0)
+        return runningVms; // empty map
+
+    // Parse lines, they have the following format:
+    //      "name_of_the_VM" {vboxid}
+    for (std::vector<std::string>::iterator it = lines.begin(); it != lines.end(); ++it) {
+        std::string line = *it;
+        size_t firstQuote = line.find_first_of('"');
+        size_t secondQuote = line.find_last_of('"');
+
+        if (firstQuote == secondQuote) // none or one quote
+            continue;
+
+        std::string machineName = line.substr(firstQuote+1, secondQuote-(firstQuote+1));
+        runningVms.push_back(machineName);
+    }
+
+    return runningVms;
+    CRASH_REPORT_END;
+}
+
+/**
  * Load session state from VirtualBox
  */
 int VBoxInstance::loadSessions( const FiniteTaskPtr & pf ) {

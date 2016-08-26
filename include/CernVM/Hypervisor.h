@@ -390,6 +390,7 @@ public:
      */
     virtual int             getAPIPort() = 0;
 
+
     /**
      * Probe the API Port and check if it's alive.
      * There are different handshakes availables:
@@ -521,6 +522,12 @@ public:
      * Return the hypervisor type ID
      */
     virtual int             getType             ( ) { return HV_NONE; };
+
+    /**
+     * Get names of all (not just our sessions) running machines under the hypervisor.
+     */
+    virtual std::vector<std::string>
+                            getRunningMachines  ( ) = 0;
 
     /**
      * Load the sessions from disk/hypervisor into the sessions[] map
