@@ -308,6 +308,22 @@ std::string prepareAppDataPath() {
 }
 
 /**
+ * Get the location of the user's platform dependant home directory
+ */
+std::string getHomeDir() {
+    std::string home;
+    #ifdef _WIN32
+    home = getenv("USERPROFILE");
+    #else
+    // Linux and Mac have the same function available
+    struct passwd *p = getpwuid(getuid());
+    home = p->pw_dir;
+    #endif
+
+    return home;
+}
+
+/**
  * Check if file is empty
  */
 bool is_empty( const std::string& path, std::streampos minSize ) {

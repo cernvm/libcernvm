@@ -216,6 +216,11 @@ std::string                                         newGUID( );
 std::string                                         getAppDataPath  ( );
 
 /**
+ * Get the location of the user's home directory
+ */
+std::string                                         getHomeDir      ( );
+
+/**
  * Remove a trailing folder from the given path
  */
 std::string                                         stripComponent  ( std::string path );

@@ -646,7 +646,6 @@ void VBoxSession::ConfigureVM() {
                      << " --hostonlyadapter2 \"" << local->get("hostonlyif") << "\"";
             }
         }
-
     }
 
     // Execute and handle errors
@@ -664,7 +663,7 @@ void VBoxSession::ConfigureVM() {
             // First we need to delete the rule, if it already exists
             args.str("");
             args << "modifyvm " << parameters->get("vboxid")
-                << " --natpf1" << " delete" << " guestapi";
+                 << " --natpf1" << " delete" << " guestapi";
 
             // Use custom execConfig to ignore "nonexisting" errors
             SysExecConfig localExecCfg( execConfig );
@@ -694,6 +693,22 @@ void VBoxSession::ConfigureVM() {
         }
 
     }
+    // Add shared folder if needed
+    int vM = local->getNum<int>("sharedFolderAdded", 0); // We cannot use machine/Shared Folders, because it doesn't get parsed correctly
+    if (! vM) {
+        args.str("");
+        args << "sharedfolder " << "add " << parameters->get("vboxid")
+             << " --name " << "guest_home " << "--hostpath " << getHomeDir()
+             << " --automount";
+
+        ans = this->wrapExec(args.str(), &lines, NULL, execConfig);
+        if ((ans != 0) && (ans != 100)) {
+            errorOccured("Unable to modify the Virtual Machine", HVE_EXTERNAL_ERROR);
+            return;
+        }
+        local->setNum<int>("sharedFolderAdded", 1);
+    }
+
 
 
 //        << " --cpus "                   << parameters->get("cpus", "2")
