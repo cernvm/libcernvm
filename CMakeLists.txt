@@ -36,15 +36,30 @@ set(BUILD_ID "" CACHE STRING "A build ID which is used to address different libr
 # Validation banner
 message(STATUS "Building libcernvm for arch: ${TARGET_ARCH}")
 
+# CernVM Library
+project ( libcernvm )
+set(VERSION "2.0.12")
+
 # Change OSX architectures
 if (APPLE)
 	set(CMAKE_OSX_ARCHITECTURES ${TARGET_ARCH})
 	set(OSX_ARCHITECTURES ${TARGET_ARCH})
+elseif(WIN32)
+    # Specify static/shared libraries compiler flags depending on the build type
+    if (MSVC)
+        if (BUILD_SHARED_LIBS)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MD")
+            set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MD")
+            set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MDd")
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+            set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
+            set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
+        endif()
+    endif()
 endif()
-
-# CernVM Library
-project ( libcernvm )
-set(VERSION "2.0.12")
 
 #############################################################
 # HELPER FUNCTIONS 
@@ -165,6 +180,9 @@ if ( NOT DEFINED(OPENSSL_LIBRARIES) OR NOT DEFINED(OPENSSL_INCLUDE_DIRS) )
 		set( OPENSSL_MODE "LOCAL" )
 		message( STATUS "Using OpenSSL shipped with libcernvm")
 
+        # Add a definition to tell the openssl to produce a static build
+        add_definitions(-DLIBSSH_STATIC)
+
 	endif()
 
 else()
@@ -276,10 +294,10 @@ if (UNIX AND NOT APPLE)
 endif()
 
 #
-# [Advapi32.lib] required only on Windows
+# [Advapi32.lib and Ws2_32.lib] required only on Windows
 # 
 if (WIN32)
-	set( EXTRA_LIBRARIES advapi32 )
+    set( EXTRA_LIBRARIES advapi32 Ws2_32)
 endif()
 
 # Include libraries
