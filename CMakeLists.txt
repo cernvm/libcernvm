@@ -40,6 +40,15 @@ message(STATUS "Building libcernvm for arch: ${TARGET_ARCH}")
 project ( libcernvm )
 set(VERSION "2.0.12")
 
+# Erase default linker options
+SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+if(WIN32)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+else()
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+endif()
+
 # Change OSX architectures
 if (APPLE)
 	set(CMAKE_OSX_ARCHITECTURES ${TARGET_ARCH})
@@ -60,6 +69,7 @@ elseif(WIN32)
         endif()
     endif()
 endif()
+
 
 #############################################################
 # HELPER FUNCTIONS 
@@ -388,6 +398,11 @@ if (WIN32)
 else(WIN32)
     #Avoid complaining about auto_ptr usage
     add_definitions(-Wno-deprecated)
+    if ("${TARGET_ARCH}" STREQUAL "x86_64")
+        add_definitions(-m64)
+    else()
+        add_definitions(-m32)
+    endif()
     # Add c++11 support
     if(COMPILER_SUPPORTS_CXX11)
         add_definitions(-std=c++11)
@@ -444,5 +459,9 @@ if (hasParent)
     set( CERNVM_INCLUDE_DIRS
         ${PROJECT_SOURCE_DIR}/include 	# Library includes
         ${PROJECT_INCLUDES}				# All includes are for the project too
+        PARENT_SCOPE )
+    set( CVM_BOOST_LIBRARIES
+        ${PROJECT_NAME}
+        ${BOOST_LIBRARIES}
         PARENT_SCOPE )
 endif()
