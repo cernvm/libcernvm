@@ -10,7 +10,7 @@ set(CURL_SHA1    	9ef09e97dfc9f14ac2c042f3b7e301098794fc0f)
 #############################################################
 
 # Setup archive
-set( ARCHIVE_URL  "http://curl.haxx.se/download/curl-${CURL_VERSION}.zip" )
+set( ARCHIVE_URL  "http://ecsft.cern.ch/dist/cernvm/libcernvm/externals/curl-${CURL_VERSION}.zip" )
 set( ARCHIVE_DIR  "${CMAKE_CURRENT_SOURCE_DIR}/curl-${CURL_VERSION}" )
 set( ARCHIVE_EXT  ".zip" )
 
@@ -290,10 +290,10 @@ endif()
 # ENDIF(NOT CURL_SPECIAL_LIBZ)
 
 # Check for idn
-check_library_exists_concat("idn" idna_to_ascii_lz HAVE_LIBIDN)
+#check_library_exists_concat("idn" idna_to_ascii_lz HAVE_LIBIDN)
 
 # Check for LDAP
-check_library_exists_concat("ldap" ldap_init HAVE_LIBLDAP)
+#check_library_exists_concat("ldap" ldap_init HAVE_LIBLDAP)
 # if(NOT HAVE_LIBLDAP)
 # SET(CURL_DISABLE_LDAP ON)
 # endif(NOT HAVE_LIBLDAP)

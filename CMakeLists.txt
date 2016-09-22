@@ -300,7 +300,7 @@ endif()
 #
 set( EXTRA_LIBRARIES "" )
 if (UNIX AND NOT APPLE)
-	set( EXTRA_LIBRARIES pthread )
+	set( EXTRA_LIBRARIES pthread rt)
 endif()
 
 #
