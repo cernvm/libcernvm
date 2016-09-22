@@ -1214,7 +1214,7 @@ int sysExecAsync( string app, string cmdline ) {
 
     /* Use the system '& hack */
     string sysCmd = "\"" + app + "\" " + cmdline + "&";
-    system( sysCmd.c_str() );
+    (void) system( sysCmd.c_str() );
 
     /* Always return OK */
     return HVE_OK;
