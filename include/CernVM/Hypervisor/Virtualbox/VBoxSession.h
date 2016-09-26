@@ -213,6 +213,11 @@ public:
      */
     void                    FSMEnteringState    ( const int state, const bool final );
 
+    /**
+     * Destroy and unregister VM
+     */
+    int                     destroyVM           ( const bool forwardErrors = true );
+
 protected:
 
     /////////////////////////////////////
@@ -226,11 +231,6 @@ protected:
                                                   std::vector<std::string> * stdoutList, 
                                                   std::string * stderrMsg, 
                                                   const SysExecConfig& config );
-
-    /**
-     * Destroy and unregister VM
-     */
-    int                     destroyVM           ( const bool forwardErrors = true );
 
     /**
      * (Re-)Mount a disk on the specified controller
