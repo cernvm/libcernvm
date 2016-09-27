@@ -434,12 +434,18 @@ std::string getAppDataPath() {
  */
 bool setAppDataBasePath( const std::string& path) {
     CRASH_REPORT_BEGIN;
-    if (appDataDir.empty()) {
-        if (! fs::is_directory(path)) { // we need to create the directory
-            if (! fs::create_directory(path))
+    if (appDataDir.empty() && !path.empty()) {
+        std::string mPath = systemPath(path); // change the quotes to the system ones
+        if (! fs::is_directory(mPath)) { // we need to create the directory
+            if (! fs::create_directory(mPath))
                 return false; // unable to create the directory
         }
-        appDataBaseDir = path;
+        // erase trailing slash if needed
+        char end = mPath[mPath.size()-1];
+        if (end == '/' || end == '\\')
+            mPath.erase(mPath.size()-1);
+
+        appDataBaseDir = mPath;
         return true;
     }
     else // you are calling too late, getAppDataPath() has already been invoked, cannot change the path during runtime
