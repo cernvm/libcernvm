@@ -59,6 +59,8 @@ static const char reverse_table[128] = {
 
 /* Singleton optimization for AppData folder */
 std::string appDataDir = "";
+/* Base folder for the appDataDir. If not present, defaults to the standard location */
+std::string appDataBaseDir = "";
 
 /* A list of named mutexes in this process (static) */
 std::map< std::string, sharedMutex >    namedMutexStack;
@@ -237,7 +239,9 @@ std::string which( const std::string& binary ) {
 }
 
 /**
- * Get the location of the platform-dependant application data folder
+ * Get the location of the platform-dependent application data folder
+ * Base folder is either OS dependent or it was supplied before
+ * via setAppDataBasePath().
  * This function also builds the required directory structure:
  *
  * + CernVM/
@@ -249,12 +253,13 @@ std::string which( const std::string& binary ) {
  */
 std::string prepareAppDataPath() {
     CRASH_REPORT_BEGIN;
-    std::string homeDir;
+    std::string homeDir = appDataBaseDir;
     std::string subDir;
     
     /* On windows it goes on AppData */
     #ifdef _WIN32
-    homeDir = getenv("APPDATA");
+    if (homeDir.empty())
+        homeDir = getenv("APPDATA");
     homeDir += "/CernVM";
     _mkdir(homeDir.c_str());
     homeDir += "/WebAPI";
@@ -271,7 +276,8 @@ std::string prepareAppDataPath() {
     #if defined(__APPLE__) && defined(__MACH__)
     struct passwd *p = getpwuid(getuid());
     char *home = p->pw_dir;
-    homeDir = home;
+    if (homeDir.empty())
+        homeDir = home;
     homeDir += "/Library/Application Support/CernVM";
     mkdir(homeDir.c_str(), 0777);
     homeDir += "/WebAPI";
@@ -288,7 +294,8 @@ std::string prepareAppDataPath() {
     #ifdef __linux__
     struct passwd *p = getpwuid(getuid());
     char *home = p->pw_dir;
-    homeDir = home;
+    if (homeDir.empty())
+        homeDir = home;
     homeDir += "/.cernvm";
     mkdir(homeDir.c_str(), 0777);
     homeDir += "/WebAPI";
@@ -425,6 +432,24 @@ std::string getAppDataPath() {
     if (appDataDir.empty())
         appDataDir = prepareAppDataPath();
     return appDataDir;
+    CRASH_REPORT_END;
+}
+
+/**
+ * Set base folder for prepareAppDataPath, you need to run it before using libcernvm
+ */
+bool setAppDataBasePath( const std::string& path) {
+    CRASH_REPORT_BEGIN;
+    if (appDataDir.empty()) {
+        if (! fs::is_directory(path)) { // we need to create the directory
+            if (! fs::create_directory(path))
+                return false; // unable to create the directory
+        }
+        appDataBaseDir = path;
+        return true;
+    }
+    else // you are calling too late, getAppDataPath() has already been invoked, cannot change the path during runtime
+        return false;
     CRASH_REPORT_END;
 }
 
