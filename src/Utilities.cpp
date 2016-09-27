@@ -262,8 +262,6 @@ std::string prepareAppDataPath() {
         homeDir = getenv("APPDATA");
     homeDir += "/CernVM";
     _mkdir(homeDir.c_str());
-    homeDir += "/WebAPI";
-    _mkdir(homeDir.c_str());
     subDir = homeDir + "/cache";
     _mkdir(subDir.c_str());
     subDir = homeDir + "/run";
@@ -280,8 +278,6 @@ std::string prepareAppDataPath() {
         homeDir = home;
     homeDir += "/Library/Application Support/CernVM";
     mkdir(homeDir.c_str(), 0777);
-    homeDir += "/WebAPI";
-    mkdir(homeDir.c_str(), 0777);
     subDir = homeDir + "/cache";
     mkdir(subDir.c_str(), 0777);
     subDir = homeDir + "/run";
@@ -297,8 +293,6 @@ std::string prepareAppDataPath() {
     if (homeDir.empty())
         homeDir = home;
     homeDir += "/.cernvm";
-    mkdir(homeDir.c_str(), 0777);
-    homeDir += "/WebAPI";
     mkdir(homeDir.c_str(), 0777);
     subDir = homeDir + "/cache";
     mkdir(subDir.c_str(), 0777);
