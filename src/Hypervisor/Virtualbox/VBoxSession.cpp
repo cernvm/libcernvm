@@ -696,9 +696,14 @@ void VBoxSession::ConfigureVM() {
     // Add shared folder if needed
     int vM = local->getNum<int>("sharedFolderAdded", 0); // We cannot use machine/Shared Folders, because it doesn't get parsed correctly
     if (! vM) {
+        std::string sharedFolder;
+        if (! (parameters->get("sharedFolder", "")).empty()) // User has specified which folder he wants to share
+            sharedFolder = parameters->get("sharedFolder");
+        else
+            sharedFolder = getHomeDir(); // Defaulting to a user's home directory
         args.str("");
         args << "sharedfolder " << "add " << parameters->get("vboxid")
-             << " --name " << "guest_home " << "--hostpath " << getHomeDir()
+             << " --name " << "guest_home " << "--hostpath " << sharedFolder
              << " --automount";
 
         ans = this->wrapExec(args.str(), &lines, NULL, execConfig);
