@@ -223,13 +223,16 @@ std::string which( const std::string& binary ) {
 #endif
 
     // Split path component
+    std::string pathSeparator;
 #ifdef _WIN32
+    pathSeparator = '\\';
     std::vector< std::string > paths = split( path, ';' );
 #else
+    pathSeparator = '/';
     std::vector< std::string > paths = split( path, ':' );
 #endif
     for (std::vector< std::string >::iterator it = paths.begin(); it != paths.end(); ++it) {
-        std::string file = *it + binary;
+        std::string file = *it + pathSeparator + binary;
         if (file_exists(file))
             return file;
     }
