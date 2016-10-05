@@ -216,6 +216,11 @@ std::string                                         newGUID( );
 std::string                                         getAppDataPath  ( );
 
 /**
+ * Get the location of app data base dir
+ */
+std::string                                         getDefaultAppDataBaseDir  ( );
+
+/**
  * Set base folder for appDataPath
  * You need to run it before using libcernvm, any calls after getAppDataPath() has been
  * invoked will have no effect (this is to ensure data path consistency)

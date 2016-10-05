@@ -258,11 +258,12 @@ std::string prepareAppDataPath() {
     CRASH_REPORT_BEGIN;
     std::string homeDir = appDataBaseDir;
     std::string subDir;
+
+    if (homeDir.empty())
+        homeDir = getDefaultAppDataBaseDir();
     
     /* On windows it goes on AppData */
     #ifdef _WIN32
-    if (homeDir.empty())
-        homeDir = getenv("APPDATA");
     homeDir += "/CernVM";
     _mkdir(homeDir.c_str());
     subDir = homeDir + "/cache";
@@ -275,10 +276,6 @@ std::string prepareAppDataPath() {
     
     /* On Apple it goes on user's Application Support */
     #if defined(__APPLE__) && defined(__MACH__)
-    struct passwd *p = getpwuid(getuid());
-    char *home = p->pw_dir;
-    if (homeDir.empty())
-        homeDir = home;
     homeDir += "/Library/Application Support/CernVM";
     mkdir(homeDir.c_str(), 0777);
     subDir = homeDir + "/cache";
@@ -291,10 +288,6 @@ std::string prepareAppDataPath() {
     
     /* On linux it goes on the .cernvm dotfolder in user's home dir */
     #ifdef __linux__
-    struct passwd *p = getpwuid(getuid());
-    char *home = p->pw_dir;
-    if (homeDir.empty())
-        homeDir = home;
     homeDir += "/.cernvm";
     mkdir(homeDir.c_str(), 0777);
     subDir = homeDir + "/cache";
@@ -309,6 +302,21 @@ std::string prepareAppDataPath() {
     return homeDir;
     
     CRASH_REPORT_END;
+}
+
+/**
+ * Get the location of the platform dependant app data base directory
+ */
+std::string getDefaultAppDataBaseDir() {
+    std::string homeDir;
+    #ifdef _WIN32
+    homeDir = getenv("APPDATA");
+    #else //linux and mac
+    struct passwd *p = getpwuid(getuid());
+    char *home = p->pw_dir;
+    homeDir = home;
+    #endif
+    return homeDir;
 }
 
 /**
@@ -440,7 +448,7 @@ bool setAppDataBasePath( const std::string& path) {
     if (appDataDir.empty() && !path.empty()) {
         std::string mPath = systemPath(path); // change the quotes to the system ones
         if (! fs::is_directory(mPath)) { // we need to create the directory
-            if (! fs::create_directory(mPath))
+            if (! fs::create_directories(mPath))
                 return false; // unable to create the directory
         }
         // erase trailing slash if needed
