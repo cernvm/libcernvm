@@ -97,13 +97,14 @@ enum HVFailures {
 
 /* Virtual machine session flags */
 #define HVF_SYSTEM_64BIT        1       // The system is 64-bit instead of 32-bit
-#define HVF_DEPLOYMENT_HDD      2       // Use regular deployment (HDD) instead of micro-iso
+#define HVF_DEPLOYMENT_HDD      2       // Use regular deployment (HDD) instead of micro-iso, from an online file
 #define HVF_GUEST_ADDITIONS     4       // Include a guest additions CD-ROM
 #define HVF_FLOPPY_IO           8       // Use floppyIO instead of contextualization CD-ROM
 #define HVF_HEADFUL            16       // Start the VM in headful mode
 #define HVF_GRAPHICAL          32       // Enable graphical extension (like drag-n-drop)
 #define HVF_DUAL_NIC           64       // Use secondary adapter instead of creating a NAT rule on the first one
 #define HVF_SERIAL_LOGFILE    128       // Use ttyS0 as external logfile.
+#define HVF_DEPLOYMENT_HDD_LOCAL 256    // Use regular deployment (HDD) instead of micro-iso, from a local file
 
 /**
  * Shared Pointer Definition

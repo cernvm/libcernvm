@@ -534,7 +534,7 @@ void VBoxSession::ConfigureVM() {
 
     // Pick the boot medium depending on the mount type
     string bootMedium = "dvd";
-    if ((flags & HVF_DEPLOYMENT_HDD) != 0) bootMedium = "disk";
+    if ((flags & HVF_DEPLOYMENT_HDD) != 0 || (flags & HVF_DEPLOYMENT_HDD_LOCAL) != 0) bootMedium = "disk";
 
     // Modify VM to match our needs
     args.str("");
@@ -851,27 +851,42 @@ void VBoxSession::DownloadMedia() {
     int ans;
 
     // ============================================================================= //
+    //   MODE 0 : Local Image Mode                                                   //
+    // ----------------------------------------------------------------------------- //
+    //   In this mode the 'diskPath' variable contains the filename of a gzipped VMDK//
+    //   image, which is available on the local system.                              //
+    // ============================================================================= //
+    if ((flags & HVF_DEPLOYMENT_HDD_LOCAL) != 0) {
+        sFilename = parameters->get("diskPath", "");
+        if (sFilename.empty()) {
+            errorOccured("Missing disk file parameter", HVE_NOT_VALIDATED);
+            return;
+        }
+
+        // Store boot iso image
+        local->set("bootDisk", sFilename);
+    }
+
+    // ============================================================================= //
     //   MODE 1 : Regular Mode                                                       //
     // ----------------------------------------------------------------------------- //
-    //   In this mode the 'cvmVersion' variable contains the URL of a gzipped VMDK   //
+    //   In this mode the 'diskURL' variable contains the URL of a gzipped VMDK      //
     //   image. This image will be downloaded, extracted and placed on cache. Then   //
     //   it will be cloned using copy-on write mode on the user's VM directory.      //
     // ============================================================================= //
-    if ((flags & HVF_DEPLOYMENT_HDD) != 0) {
-
+    else if ((flags & HVF_DEPLOYMENT_HDD) != 0) {
         // Prepare filename and checksum
         string urlFilename = parameters->get("diskURL", "");
         string checksum = parameters->get("diskChecksum", "");
-
         // If anything of those two is blank, fail
         if (urlFilename.empty() || checksum.empty()) {
             errorOccured("Missing disk and/or checksum parameters", HVE_NOT_VALIDATED);
             return;
         }
 
-        // Check if we are downloading a compressed file
         FiniteTaskPtr pfDownload;
         string urlFilenamePart = getURLFilename(urlFilename);
+
         if (pf) pfDownload = pf->begin<FiniteTask>("Downloading CernVM ISO");
         if (urlFilenamePart.find(".gz") != std::string::npos) {
             
@@ -909,7 +924,6 @@ void VBoxSession::DownloadMedia() {
 
         // Store boot iso image
         local->set("bootDisk", sFilename);
-
     }
 
     // ============================================================================= //
@@ -987,7 +1001,7 @@ void VBoxSession::ConfigureVMBoot() {
     // ------------------------------------------------
     // MODE 1 : Disk image mode
     // ------------------------------------------------
-    if ((flags & HVF_DEPLOYMENT_HDD) != 0) {
+    if ((flags & HVF_DEPLOYMENT_HDD) != 0 || (flags & HVF_DEPLOYMENT_HDD_LOCAL) != 0) {
 
         // Get disk path
         string bootDisk = local->get("bootDisk");
@@ -1078,7 +1092,7 @@ void VBoxSession::ReleaseVMBoot() {
     int flags = parameters->getNum<int>("flags", 0);
 
     // Unmount boot disk
-    if ((flags & HVF_DEPLOYMENT_HDD) != 0) {
+    if ((flags & HVF_DEPLOYMENT_HDD) != 0 || (flags & HVF_DEPLOYMENT_HDD_LOCAL) != 0) {
         unmountDisk( BOOT_CONTROLLER, BOOT_PORT, BOOT_DEVICE, T_HDD, true );
     } else {
         unmountDisk( BOOT_CONTROLLER, BOOT_PORT, BOOT_DEVICE, T_DVD, false );
