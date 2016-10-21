@@ -356,10 +356,81 @@ void VBoxSession::CreateVM() {
     string vboxid;
     int ans;
 
+    SysExecConfig createExecConfig(execConfig);
+    createExecConfig.handleErrString("already exists", 500);
+
     // Extract flags
     int flags = parameters->getNum<int>("flags", 0);
     // Extract name
     string name = parameters->get("name");
+
+    bool ovaImageImport = false;
+    std::string ovaImportStr = parameters->get("ovaImport", "");
+    std::transform(ovaImportStr.begin(), ovaImportStr.end(), ovaImportStr.begin(), ::tolower); // put string to lowercase
+    if (ovaImportStr == "true" || ovaImportStr == "yes")
+        ovaImageImport = true;
+
+    // Create a new VM by OVA image import
+    if (ovaImageImport) {
+        std::string ovaFilename = parameters->get("ovaPath", "");
+        if (ovaFilename.empty()) {
+            errorOccured("When importing OVA image, you need to provide 'ovaPath' parameter", HVE_CREATE_ERROR);
+            return;
+        }
+
+        args.str("");
+        args << "import " << ovaFilename;
+        if (!name.empty())
+            args << " --vsys 0 --vmname " << name;
+
+        ans = this->wrapExec(args.str(), &lines, NULL, createExecConfig);
+        if (ans == 500) { //already exists
+            // Try to fetch VM info by name
+            map<const string, const string> info = getMachineInfo( "\"" + name + "\"" );
+            if (info.find(":ERROR:") != info.end()) {
+                errorOccured("VM already exists, but could not obtain VirtualBox reflection information.", HVE_CREATE_ERROR);
+                return;
+            }
+            // Store machine info
+            machine->fromMap( &info, true );
+
+            // Update UUID from the VBoxManager response
+            if (!machine->contains("UUID")) {
+                errorOccured("VM already exists, but could not lookup it's ID.", HVE_CREATE_ERROR);
+                return;
+            }
+            // Set VBoxID
+            vboxid = machine->get("UUID");
+            parameters->set("vboxid", vboxid);
+
+        } else if (ans != 0) {
+            errorOccured("Unable to create a new virtual machine", HVE_CREATE_ERROR);
+            return;
+
+        } else {
+            // Get and store VBox UUID
+            args.str("");
+            args << "showvminfo " << name;
+            ans = this->wrapExec(args.str(), &lines, NULL, createExecConfig);
+
+            map<const string, const string> toks = tokenize( &lines, ':' );
+            if (ans != 0 || toks.find("UUID") == toks.end()) {
+                errorOccured("Unable to detect the VirtualBox ID of the imported VM", HVE_CREATE_ERROR);
+                return;
+            }
+
+            // Store VBox UUID
+            vboxid = toks["UUID"];
+            parameters->set("vboxid", vboxid);
+        }
+
+        // The current (known) VM state is 'created'
+        local->set("state", "0");
+        FSMDone("Session initialized");
+        return;
+    }
+
+    // Create a new VM from scratch
 
     // Check what kind of VM to create
     string osType = "Linux26";
@@ -376,10 +447,8 @@ void VBoxSession::CreateVM() {
         << " --ostype " << osType
         << " --basefolder \"" << baseFolder << "\""
         << " --register";
-    
+
     // Execute and handle errors
-    SysExecConfig createExecConfig(execConfig);
-    createExecConfig.handleErrString("already exists", 500);
     ans = this->wrapExec(args.str(), &lines, NULL, createExecConfig);
 
     // Prepare a set of actions to perform
@@ -426,7 +495,6 @@ void VBoxSession::CreateVM() {
         // Store VBox UUID
         vboxid = toks["UUID"];
         parameters->set("vboxid", vboxid);
-
     }
 
     // Look if we have controllers and disable the creation
@@ -701,12 +769,18 @@ void VBoxSession::ConfigureVM() {
             sharedFolder = parameters->get("sharedFolder");
         else
             sharedFolder = getHomeDir(); // Defaulting to a user's home directory
+
+        std::string sharedFolderName = parameters->get("name", "") + "_sf";
         args.str("");
         args << "sharedfolder " << "add " << parameters->get("vboxid")
-             << " --name " << "guest_home " << "--hostpath " << sharedFolder
+             << " --name " << sharedFolderName << " --hostpath " << sharedFolder
              << " --automount";
 
-        ans = this->wrapExec(args.str(), &lines, NULL, execConfig);
+        // Use custom execConfig to ignore "already exists" errors
+        std::string alreadyExistsString = "Shared folder named '" + sharedFolderName + "' already exists";
+        SysExecConfig localExecCfgCreate( execConfig );
+        localExecCfgCreate.handleErrString( alreadyExistsString, 100 );
+        ans = this->wrapExec(args.str(), &lines, NULL, localExecCfgCreate);
         if ((ans != 0) && (ans != 100)) {
             errorOccured("Unable to modify the Virtual Machine", HVE_EXTERNAL_ERROR);
             return;
@@ -728,11 +802,11 @@ void VBoxSession::ConfigureVM() {
 //        << " --vrdeport "               << rdpPort
 //        << " --boot1 "                  << bootMedium
 //        << " --boot2 "                  << "none"
-//        << " --boot3 "                  << "none" 
+//        << " --boot3 "                  << "none"
 //        << " --boot4 "                  << "none"
 //        << " --nic1 "                   << "nat"
 //        << " --natdnshostresolver1 "    << "on";
-//    
+//
 //    // Setup network
 //    if ((flags & HVF_DUAL_NIC) != 0) {
 //        // Create two adapters if DUAL_NIC is specified
