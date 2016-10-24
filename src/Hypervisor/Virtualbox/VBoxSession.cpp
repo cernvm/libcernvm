@@ -410,7 +410,7 @@ void VBoxSession::CreateVM() {
         } else {
             // Get and store VBox UUID
             args.str("");
-            args << "showvminfo " << name;
+            args << "showvminfo \"" << name << "\"";
             ans = this->wrapExec(args.str(), &lines, NULL, createExecConfig);
 
             map<const string, const string> toks = tokenize( &lines, ':' );
@@ -2861,20 +2861,20 @@ std::map<const std::string, const std::string> VBoxSession::getMachineInfo ( con
     SysExecConfig config(execConfig);
     config.retries = retries;
     config.timeout = timeout;
-    
+
     /* Perform property update */
-    int ans = this->wrapExec("showvminfo "+this->parameters->get("vboxid"), &lines, NULL, config);
+    int ans = this->wrapExec("showvminfo \"" + vbox_id + "\"", &lines, NULL, config);
     if (ans != 0) {
         dat.insert(std::make_pair(":ERROR:", ntos<int>( ans )));
         return dat;
     }
-    
+
     /* Tokenize response */
     map<const string, const string> machineInfo = tokenize( &lines, ':' );
     lastMachineInfo.clear();
     lastMachineInfo.insert( machineInfo.begin(), machineInfo.end() );
     lastMachineInfoTimestamp = ms;
-    
+
     return lastMachineInfo;
 
     CRASH_REPORT_END;
