@@ -785,6 +785,14 @@ void VBoxSession::ConfigureVM() {
             errorOccured("Unable to modify the Virtual Machine", HVE_EXTERNAL_ERROR);
             return;
         }
+        // Now enable creating symlinks from the guest OS
+        args.str("");
+        args << "setextradata " << parameters->get("vboxid") << " VBoxInternal2/SharedFoldersEnableSymlinksCreate/"
+             << sharedFolderName << " 1";
+        ans = this->wrapExec(args.str(), &lines, NULL, localExecCfgCreate);
+        if ((ans != 0) && (ans != 100))
+            CVMWA_LOG("log", "Unable to enable symlink creation from the host OS");
+
         local->setNum<int>("sharedFolderAdded", 1);
     }
 
