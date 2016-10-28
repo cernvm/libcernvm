@@ -356,6 +356,10 @@ void VBoxSession::CreateVM() {
     string vboxid;
     int ans;
 
+    bool add_IDE = true,
+         add_SATA = true,
+         add_FLOPPY = true;
+
     SysExecConfig createExecConfig(execConfig);
     createExecConfig.handleErrString("already exists", 500);
 
@@ -386,7 +390,7 @@ void VBoxSession::CreateVM() {
         ans = this->wrapExec(args.str(), &lines, NULL, createExecConfig);
         if (ans == 500) { //already exists
             // Try to fetch VM info by name
-            map<const string, const string> info = getMachineInfo( "\"" + name + "\"" );
+            map<const string, const string> info = getMachineInfo( name );
             if (info.find(":ERROR:") != info.end()) {
                 errorOccured("VM already exists, but could not obtain VirtualBox reflection information.", HVE_CREATE_ERROR);
                 return;
@@ -422,79 +426,75 @@ void VBoxSession::CreateVM() {
             // Store VBox UUID
             vboxid = toks["UUID"];
             parameters->set("vboxid", vboxid);
-        }
 
-        // The current (known) VM state is 'created'
-        local->set("state", "0");
-        FSMDone("Session initialized");
-        return;
+            // Try to fetch VM info by name
+            map<const string, const string> info = getMachineInfo( name );
+            if (info.find(":ERROR:") == info.end()) // No error => store machine info
+                machine->fromMap( &info, true );
+        }
     }
+    else {
+        // Create a new VM from scratch
 
-    // Create a new VM from scratch
+        // Check what kind of VM to create
+        string osType = "Linux26";
+        if ((flags & HVF_SYSTEM_64BIT) != 0) osType="Linux26_64";
 
-    // Check what kind of VM to create
-    string osType = "Linux26";
-    if ((flags & HVF_SYSTEM_64BIT) != 0) osType="Linux26_64";
+        // Create a base folder for this VM
+        string baseFolder = LocalConfig::runtime()->getPath(uuid);
+        local->set("baseFolder", baseFolder);
 
-    // Create a base folder for this VM
-    string baseFolder = LocalConfig::runtime()->getPath(uuid);
-    local->set("baseFolder", baseFolder);
+        // Create and register a new VM
+        args.str("");
+        args << "createvm"
+            << " --name \"" << name << "\""
+            << " --ostype " << osType
+            << " --basefolder \"" << baseFolder << "\""
+            << " --register";
 
-    // Create and register a new VM
-    args.str("");
-    args << "createvm"
-        << " --name \"" << name << "\""
-        << " --ostype " << osType
-        << " --basefolder \"" << baseFolder << "\""
-        << " --register";
+        // Execute and handle errors
+        ans = this->wrapExec(args.str(), &lines, NULL, createExecConfig);
 
-    // Execute and handle errors
-    ans = this->wrapExec(args.str(), &lines, NULL, createExecConfig);
+        // If VM already exists, update sysconfig
+        if (ans == 500) {
 
-    // Prepare a set of actions to perform
-    bool add_IDE = true,
-         add_SATA = true,
-         add_FLOPPY = true;
+            // Try to fetch VM info by name
+            map<const string, const string> info = getMachineInfo( name );
+            if (info.find(":ERROR:") != info.end()) {
+                errorOccured("VM already exists, but could not obtain VirtualBox reflection information.", HVE_CREATE_ERROR);
+                return;
+            }
 
-    // If VM already exists, update sysconfig
-    if (ans == 500) {
+            // Store machine info
+            machine->fromMap( &info, true );
 
-        // Try to fetch VM info by name
-        map<const string, const string> info = getMachineInfo( "\"" + name + "\"" );
-        if (info.find(":ERROR:") != info.end()) {
-            errorOccured("VM already exists, but could not obtain VirtualBox reflection information.", HVE_CREATE_ERROR);
+            // Update UUID from the VBoxManager response
+            if (!machine->contains("UUID")) {
+                errorOccured("VM already exists, but could not lookup it's ID.", HVE_CREATE_ERROR);
+                return;
+            }
+
+            // Set VBoxID
+            vboxid = machine->get("UUID");
+            parameters->set("vboxid", vboxid);
+
+        } else if (ans != 0) {
+            errorOccured("Unable to create a new virtual machine", HVE_CREATE_ERROR);
             return;
+
+        } else {
+
+            // Parse output
+            map<const string, const string> toks = tokenize( &lines, ':' );
+            if (toks.find("UUID") == toks.end()) {
+                errorOccured("Unable to detect the VirtualBox ID of the newly allocated VM", HVE_CREATE_ERROR);
+                return;
+            }
+
+            // Store VBox UUID
+            vboxid = toks["UUID"];
+            parameters->set("vboxid", vboxid);
         }
-
-        // Store machine info
-        machine->fromMap( &info, true );
-
-        // Update UUID from the VBoxManager response
-        if (!machine->contains("UUID")) {
-            errorOccured("VM already exists, but could not lookup it's ID.", HVE_CREATE_ERROR);
-            return;
-        }
-
-        // Set VBoxID
-        vboxid = machine->get("UUID");
-        parameters->set("vboxid", vboxid);
-
-    } else if (ans != 0) {
-        errorOccured("Unable to create a new virtual machine", HVE_CREATE_ERROR);
-        return;
-
-    } else {
-
-        // Parse output
-        map<const string, const string> toks = tokenize( &lines, ':' );
-        if (toks.find("UUID") == toks.end()) {
-            errorOccured("Unable to detect the VirtualBox ID of the newly allocated VM", HVE_CREATE_ERROR);
-            return;
-        }
-
-        // Store VBox UUID
-        vboxid = toks["UUID"];
-        parameters->set("vboxid", vboxid);
     }
 
     // Look if we have controllers and disable the creation
@@ -1081,9 +1081,15 @@ void VBoxSession::ConfigureVMBoot() {
     int flags = parameters->getNum<int>("flags", 0);
 
     // ------------------------------------------------
+    // MODE 0 : OVA import, booting is done via the imported image
+    // ------------------------------------------------
+    if ((flags & HVF_IMPORT_OVA) != 0)
+        return;
+
+    // ------------------------------------------------
     // MODE 1 : Disk image mode
     // ------------------------------------------------
-    if ((flags & HVF_DEPLOYMENT_HDD) != 0 || (flags & HVF_DEPLOYMENT_HDD_LOCAL) != 0) {
+    else if ((flags & HVF_DEPLOYMENT_HDD) != 0 || (flags & HVF_DEPLOYMENT_HDD_LOCAL) != 0) {
 
         // Get disk path
         string bootDisk = local->get("bootDisk");
@@ -1200,12 +1206,24 @@ void VBoxSession::ReleaseVMBoot() {
 void VBoxSession::ConfigureVMScratch() {
     CRASH_REPORT_BEGIN;
     if (isAborting) return;
-    FSMDoing("Preparing scatch storage");
+    FSMDoing("Preparing scratch storage");
     ostringstream args;
     int ans;
+    int flags = parameters->getNum<int>("flags", 0);
+
+    std::string scratchController = SCRATCH_CONTROLLER;
+    std::string scratchPort = SCRATCH_PORT;
+    std::string scratchDevice = SCRATCH_DEVICE;
+    std::string scratchDsk = SCRATCH_DSK;
+
+    // We need to adjust the scratch disk numbers when importing an OVA
+    if ((flags & HVF_IMPORT_OVA) != 0) {
+        scratchPort = "1";  // "0" is already taken by the imported image
+        scratchDsk = scratchController + " (" + scratchPort + ", " + scratchDevice + ")";
+    }
 
     // Check if we have a scratch disk attached to the machine
-    if (!machine->contains(SCRATCH_DSK)) {
+    if (!machine->contains(scratchDsk)) {
 
         // Skip this if the scratch disk has size=0
         if (parameters->getNum<int>("disk") == 0) {
@@ -1236,9 +1254,9 @@ void VBoxSession::ConfigureVMScratch() {
         args.str("");
         args << "storageattach "
             << parameters->get("vboxid")
-            << " --storagectl " << SCRATCH_CONTROLLER
-            << " --port "       << SCRATCH_PORT
-            << " --device "     << SCRATCH_DEVICE
+            << " --storagectl " << scratchController
+            << " --port "       << scratchPort
+            << " --device "     << scratchDevice
             << " --type "       << "hdd"
             << " --setuuid "    << diskGUID
             << " --medium "     << "\"" << vmDisk << "\"";
@@ -1252,7 +1270,7 @@ void VBoxSession::ConfigureVMScratch() {
 
         // Everything worked as expected.
         // Update disk file path in the scratch disk controller
-        machine->set(SCRATCH_DSK, vmDisk + " (UUID: " + diskGUID + ")");
+        machine->set(scratchDsk, vmDisk + " (UUID: " + diskGUID + ")");
 
         FSMDone("Scratch storage prepared");
     } else {
@@ -1262,7 +1280,7 @@ void VBoxSession::ConfigureVMScratch() {
             FSMDoing("Unmounting previous scratch disk storage");
 
             // Unmount previous disk
-            unmountDisk( SCRATCH_CONTROLLER, SCRATCH_PORT, SCRATCH_DEVICE, T_HDD, true );
+            unmountDisk( scratchController, scratchPort, scratchDevice, T_HDD, true );
             FSMDone("Scratch disk released");
             return;
         }
@@ -1368,9 +1386,15 @@ void VBoxSession::ConfigureVMAPI() {
     int ans;
 
     // ------------------------------------------------
+    // MODE 0 : OVA import (no contextualization)
+    // ------------------------------------------------
+    if ((flags & HVF_IMPORT_OVA) != 0)
+        return;
+
+    // ------------------------------------------------
     // MODE 1 : Floppy-IO Contextualization
     // ------------------------------------------------
-    if ((flags & HVF_FLOPPY_IO) != 0) {
+    else if ((flags & HVF_FLOPPY_IO) != 0) {
 
         // Unmount/remove previous VMAPI floppy
         ans = unmountDisk( FLOPPYIO_CONTROLLER, FLOPPYIO_PORT, FLOPPYIO_DEVICE, T_FLOPPY, true );

@@ -105,6 +105,7 @@ enum HVFailures {
 #define HVF_DUAL_NIC           64       // Use secondary adapter instead of creating a NAT rule on the first one
 #define HVF_SERIAL_LOGFILE    128       // Use ttyS0 as external logfile.
 #define HVF_DEPLOYMENT_HDD_LOCAL 256    // Use regular deployment (HDD) instead of micro-iso, from a local file
+#define HVF_IMPORT_OVA        512       // Import OVA image, attach only a scratch disk
 
 /**
  * Shared Pointer Definition
