@@ -316,6 +316,9 @@ std::string getDefaultAppDataBaseDir() {
     char *home = p->pw_dir;
     homeDir = home;
     #endif
+    homeDir += "/cernvm";
+    homeDir = systemPath(homeDir); // convert slash to the system type
+
     return homeDir;
 }
 
@@ -448,8 +451,10 @@ bool setAppDataBasePath( const std::string& path) {
     if (appDataDir.empty() && !path.empty()) {
         std::string mPath = systemPath(path); // change the quotes to the system ones
         if (! fs::is_directory(mPath)) { // we need to create the directory
-            if (! fs::create_directories(mPath))
+            if (! fs::create_directories(mPath)) {
+                CVMWA_LOG("Debug", "Cannot create appBaseDataPath directory: " + mPath);
                 return false; // unable to create the directory
+            }
         }
         // erase trailing slash if needed
         char end = mPath[mPath.size()-1];
@@ -459,8 +464,10 @@ bool setAppDataBasePath( const std::string& path) {
         appDataBaseDir = mPath;
         return true;
     }
-    else // you are calling too late, getAppDataPath() has already been invoked, cannot change the path during runtime
+    else { // you are calling too late, getAppDataPath() has already been invoked, cannot change the path during runtime
+        CVMWA_LOG("Debug", "Cannot set appDataBaseDir, getAppDataPath has already been invoked");
         return false;
+    }
     CRASH_REPORT_END;
 }
 
