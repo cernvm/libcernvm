@@ -695,6 +695,7 @@ void VBoxSession::ConfigureVM() {
         vM = machine->get("NIC 1", "");
         if (vM.empty() || (vM == "disabled")) {
             args << " --nic1 "              << "nat";
+            args << " --nictype1 "          << "virtio";
         }
 
         // 9) NAT DNS Host Resolver (bugfix for hibernate cases)
@@ -712,6 +713,7 @@ void VBoxSession::ConfigureVM() {
             if (vM.empty() || (vM == "disabled")) {
                 args << " --nic2 "          << "hostonly" 
                      << " --hostonlyadapter2 \"" << local->get("hostonlyif") << "\"";
+                args << " --nictype2 "          << "virtio";
             }
         }
     }
