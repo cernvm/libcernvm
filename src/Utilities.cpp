@@ -261,9 +261,10 @@ std::string prepareAppDataPath() {
 
     if (homeDir.empty())
         homeDir = getDefaultAppDataBaseDir();
-    
+
     /* On windows it goes on AppData */
     #ifdef _WIN32
+    _mkdir(homeDir.c_str());
     homeDir += "/CernVM";
     _mkdir(homeDir.c_str());
     subDir = homeDir + "/cache";
@@ -273,9 +274,10 @@ std::string prepareAppDataPath() {
     subDir = homeDir + "/config";
     _mkdir(subDir.c_str());
     #endif
-    
+
     /* On Apple it goes on user's Application Support */
     #if defined(__APPLE__) && defined(__MACH__)
+    mkdir(homeDir.c_str(), 0777);
     homeDir += "/Library/Application Support/CernVM";
     mkdir(homeDir.c_str(), 0777);
     subDir = homeDir + "/cache";
@@ -285,9 +287,10 @@ std::string prepareAppDataPath() {
     subDir = homeDir + "/config";
     mkdir(subDir.c_str(), 0777);
     #endif
-    
+
     /* On linux it goes on the .cernvm dotfolder in user's home dir */
     #ifdef __linux__
+    mkdir(homeDir.c_str(), 0777);
     homeDir += "/.cernvm";
     mkdir(homeDir.c_str(), 0777);
     subDir = homeDir + "/cache";
@@ -297,10 +300,10 @@ std::string prepareAppDataPath() {
     subDir = homeDir + "/config";
     mkdir(subDir.c_str(), 0777);
     #endif
-    
+
     /* Return the home directory */
     return homeDir;
-    
+
     CRASH_REPORT_END;
 }
 
