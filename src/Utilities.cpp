@@ -316,8 +316,6 @@ std::string getDefaultAppDataBaseDir() {
     char *home = p->pw_dir;
     homeDir = home;
     #endif
-    homeDir += "/cernvm";
-    homeDir = systemPath(homeDir); // convert slash to the system type
 
     return homeDir;
 }
