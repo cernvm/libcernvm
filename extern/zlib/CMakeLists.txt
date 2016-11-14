@@ -10,7 +10,7 @@ set(ZLIB_VERSION 1.2.8)
 #############################################################
 
 # Setup archive
-set( ARCHIVE_URL "http://downloads.sourceforge.net/project/libpng/zlib/${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz" )
+set( ARCHIVE_URL "http://ecsft.cern.ch/dist/cernvm/libcernvm/externals/zlib-${ZLIB_VERSION}.tar.gz" )
 set( ARCHIVE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/zlib-${ZLIB_VERSION}" )
 set( ARCHIVE_EXT ".tar.gz" )
 

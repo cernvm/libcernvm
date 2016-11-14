@@ -47,7 +47,7 @@ set (CMAKE_BACKWARDS_COMPATIBILITY 2.6)
 project(boost)
 
 set(BoostVersion 1.55.0)
-set(BoostSHA1 cef9a0cc7084b1d639e06cd3bc34e4251524c840)
+set(BoostSHA1 61ed0e57d3c7c8985805bb0682de3f4c65f4b6e5)
 
 # Detect which compiler flag to use for C++11
 include(CheckCXXCompilerFlag)
@@ -104,13 +104,14 @@ if(CMAKE_CL_64)
   set(BoostDownloadFolder "${BoostDownloadFolder}_Win64")
 endif()
 string(REPLACE "." "_" BoostDownloadFolder ${BoostDownloadFolder})
+string(REPLACE "." "_" BoostVersionUnderscored ${BoostVersion})
 set(BoostDownloadFolder ${BoostCacheDir}/${BoostDownloadFolder})
 
 # Download boost if required
 if(NOT EXISTS "${BoostCacheDir}/${BoostFolderName}.tar.bz2")
   message(STATUS "Downloading boost ${BoostVersion} to ${BoostCacheDir}")
 endif()
-file(DOWNLOAD http://sourceforge.net/projects/boost/files/boost/${BoostVersion}/${BoostFolderName}.tar.bz2/download
+file(DOWNLOAD http://ecsft.cern.ch/dist/cernvm/libcernvm/externals/boost_${BoostVersionUnderscored}.tar.gz
      ${BoostCacheDir}/${BoostFolderName}.tar.bz2
      STATUS Status
      SHOW_PROGRESS

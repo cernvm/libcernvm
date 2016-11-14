@@ -13,6 +13,7 @@ set(JSONCPP_VERSION 0.5.0)
 
 # Setup archive
 set( ARCHIVE_URL  "http://downloads.sourceforge.net/project/jsoncpp/jsoncpp/${JSONCPP_VERSION}/jsoncpp-src-${JSONCPP_VERSION}.tar.gz" )
+set( ARCHIVE_URL  "http://ecsft.cern.ch/dist/cernvm/libcernvm/externals/jsoncpp-src-${JSONCPP_VERSION}.tar.gz" )
 set( ARCHIVE_DIR  "${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp-${JSONCPP_VERSION}" )
 set( ARCHIVE_EXT  ".tar.gz" )
 
