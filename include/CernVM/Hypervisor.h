@@ -106,6 +106,7 @@ enum HVFailures {
 #define HVF_SERIAL_LOGFILE    128       // Use ttyS0 as external logfile.
 #define HVF_DEPLOYMENT_HDD_LOCAL 256    // Use regular deployment (HDD) instead of micro-iso, from a local file
 #define HVF_IMPORT_OVA        512       // Import OVA image, attach only a scratch disk
+#define HVF_DEPLOYMENT_ISO_LOCAL 1024   // Do not download CernVM ISO, but use a user provided one
 
 /**
  * Shared Pointer Definition

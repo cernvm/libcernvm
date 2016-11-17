@@ -952,7 +952,23 @@ void VBoxSession::DownloadMedia() {
     }
 
     // ============================================================================= //
-    //   MODE 1 : Regular Mode                                                       //
+    //   MODE 1 : ISO provided by the user
+    // ----------------------------------------------------------------------------- //
+    //   In this mode the 'diskPath' variable contains the filename of an ISO image, //
+    //   which is available on the local system.                                     //
+    // ============================================================================= //
+    else if ((flags & HVF_DEPLOYMENT_ISO_LOCAL) != 0) {
+        string userProvidedISO = parameters->get("isoPath", "");
+        if (userProvidedISO.empty()) {
+            errorOccured("Missing isoPath parameter", HVE_NOT_VALIDATED);
+            return;
+        }
+        // Store boot iso image
+        local->set("bootISO", userProvidedISO);
+    }
+
+    // ============================================================================= //
+    //   MODE 2 : Regular Mode                                                       //
     // ----------------------------------------------------------------------------- //
     //   In this mode the 'diskURL' variable contains the URL of a gzipped VMDK      //
     //   image. This image will be downloaded, extracted and placed on cache. Then   //
@@ -971,9 +987,8 @@ void VBoxSession::DownloadMedia() {
         FiniteTaskPtr pfDownload;
         string urlFilenamePart = getURLFilename(urlFilename);
 
-        if (pf) pfDownload = pf->begin<FiniteTask>("Downloading CernVM ISO");
+        if (pf) pfDownload = pf->begin<FiniteTask>("Downloading CernVM ISO from given URL");
         if (urlFilenamePart.find(".gz") != std::string::npos) {
-            
             // Download compressed disk
             ans = hypervisor->downloadFileGZ(
                             urlFilename,
@@ -1011,25 +1026,17 @@ void VBoxSession::DownloadMedia() {
     }
 
     // ============================================================================= //
-    //   MODE 2 : CernVM-Micro Mode                                                  //
+    //   MODE 3 : CernVM-Micro Mode                                                  //
     // ----------------------------------------------------------------------------- //
     //   In this mode a new blank, scratch disk is created. The 'cvmVersion'         //
     //   contains the version of the VM to be downloaded.                            //
     // ============================================================================= //
     else {
-        
         // Pick architecture depending on the machine architecture
         string machineArch = "x86_64";
         if ((flags & HVF_SYSTEM_64BIT) == 0) {
             machineArch = "i386";
         }
-
-        // URL Filename
-        string urlFilename = URL_CERNVM_RELEASES "/ucernvm-images." + parameters->get("cernvmVersion", DEFAULT_CERNVM_VERSION)  \
-                                + ".cernvm." + machineArch \
-                                + "/ucernvm-" + parameters->get("cernvmFlavor", "devel") \
-                                + "." + parameters->get("cernvmVersion", DEFAULT_CERNVM_VERSION) \
-                                + ".cernvm." + machineArch + ".iso";
 
         // Get the version of CernVM to fetch
         string cernvmVersion = parameters->get("cernvmVersion", DEFAULT_CERNVM_VERSION);
@@ -1038,7 +1045,7 @@ void VBoxSession::DownloadMedia() {
         FiniteTaskPtr pfDownload;
         if (pf) pfDownload = pf->begin<FiniteTask>("Downloading CernVM ISO");
         ans = hypervisor->cernVMDownload(
-            
+
             cernvmVersion,                                              // Version
             parameters->get("cernvmFlavor",  DEFAULT_CERNVM_FLAVOR),    // Flavor
             machineArch,                                                // Architecture
