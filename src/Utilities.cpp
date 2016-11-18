@@ -277,15 +277,15 @@ std::string prepareAppDataPath() {
 
     /* On Apple it goes on user's Application Support */
     #if defined(__APPLE__) && defined(__MACH__)
-    mkdir(homeDir.c_str(), 0777);
-    homeDir += "/Library/Application Support/CernVM";
-    mkdir(homeDir.c_str(), 0777);
+    fs::create_directories(homeDir);
+    homeDir += "/CernVM";
+    fs::create_directories(homeDir);
     subDir = homeDir + "/cache";
-    mkdir(subDir.c_str(), 0777);
+    fs::create_directories(subDir);
     subDir = homeDir + "/run";
-    mkdir(subDir.c_str(), 0777);
+    fs::create_directories(subDir);
     subDir = homeDir + "/config";
-    mkdir(subDir.c_str(), 0777);
+    fs::create_directories(subDir);
     #endif
 
     /* On linux it goes on the .cernvm dotfolder in user's home dir */
@@ -318,7 +318,11 @@ std::string getDefaultAppDataBaseDir() {
     struct passwd *p = getpwuid(getuid());
     char *home = p->pw_dir;
     homeDir = home;
+    // On Mac, use Library/Application Support
+    #if defined(__APPLE__) && defined(__MACH__)
+    homeDir += "/Library/Application Support";
     #endif
+    #endif //linux and mac
 
     return homeDir;
 }
