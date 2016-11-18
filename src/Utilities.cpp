@@ -262,44 +262,25 @@ std::string prepareAppDataPath() {
     if (homeDir.empty())
         homeDir = getDefaultAppDataBaseDir();
 
-    /* On windows it goes on AppData */
-    #ifdef _WIN32
-    _mkdir(homeDir.c_str());
-    homeDir += "/CernVM";
-    _mkdir(homeDir.c_str());
-    subDir = homeDir + "/cache";
-    _mkdir(subDir.c_str());
-    subDir = homeDir + "/run";
-    _mkdir(subDir.c_str());
-    subDir = homeDir + "/config";
-    _mkdir(subDir.c_str());
-    #endif
+    try {
+        fs::create_directories(homeDir);
+        #ifdef __linux__
+        homeDir += "/.cernvm"; // linux has a special location
+        #else // Win and Mac
+        homeDir += "/CernVM";
+        #endif
+        fs::create_directories(homeDir);
+        subDir = homeDir + "/cache";
+        fs::create_directories(subDir);
+        subDir = homeDir + "/run";
+        fs::create_directories(subDir);
+        subDir = homeDir + "/config";
+        fs::create_directories(subDir);
 
-    /* On Apple it goes on user's Application Support */
-    #if defined(__APPLE__) && defined(__MACH__)
-    fs::create_directories(homeDir);
-    homeDir += "/CernVM";
-    fs::create_directories(homeDir);
-    subDir = homeDir + "/cache";
-    fs::create_directories(subDir);
-    subDir = homeDir + "/run";
-    fs::create_directories(subDir);
-    subDir = homeDir + "/config";
-    fs::create_directories(subDir);
-    #endif
-
-    /* On linux it goes on the .cernvm dotfolder in user's home dir */
-    #ifdef __linux__
-    mkdir(homeDir.c_str(), 0777);
-    homeDir += "/.cernvm";
-    mkdir(homeDir.c_str(), 0777);
-    subDir = homeDir + "/cache";
-    mkdir(subDir.c_str(), 0777);
-    subDir = homeDir + "/run";
-    mkdir(subDir.c_str(), 0777);
-    subDir = homeDir + "/config";
-    mkdir(subDir.c_str(), 0777);
-    #endif
+    } catch (boost::filesystem::filesystem_error& e) { //unable to create the directory, defaulting
+        std::cerr << e.what();
+        homeDir = getDefaultAppDataBaseDir();
+    }
 
     /* Return the home directory */
     return homeDir;
@@ -372,7 +353,7 @@ std::string stripComponent( std::string path ) {
     if (iPos == std::string::npos) { // Check for windows-like trailing path
         iPos = path.find_last_of('\\');
     }
-    
+
     /* Keep only path */
     return path.substr(0, iPos);
     CRASH_REPORT_END;
@@ -385,21 +366,21 @@ std::string getFilename ( std::string path ) {
     CRASH_REPORT_BEGIN;
     std::string ans = "";
     #ifndef _WIN32
-    
+
         // Copy path to char * because dirname might modify it
         char * srcDirname = (char *) malloc( path.length() + 1 );
         path.copy( srcDirname, path.length(), 0 );
         srcDirname[ path.length() ] = '\0';
-        
+
         // Do the conversion
         char * dirname = ::basename( srcDirname );
         ans = dirname;
-        
+
         // Release pointer
         free( srcDirname );
-        
+
     #else
-    
+
         char fname[_MAX_FNAME];
         char ext[_MAX_EXT];
         _splitpath_s(
@@ -411,7 +392,7 @@ std::string getFilename ( std::string path ) {
             );
         ans += fname;
         ans += ext;
-        
+
     #endif
     return ans;
     CRASH_REPORT_END;
