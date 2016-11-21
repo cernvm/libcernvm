@@ -538,7 +538,8 @@ void VBoxSession::CreateVM() {
         args << "storagectl "
             << vboxid
             << " --name "       << "SATA"
-            << " --add "        << "sata";
+            << " --add "        << "sata"
+            << " --portcount 4";
     
         ans = this->wrapExec(args.str(), NULL, NULL, execConfig);
         if (ans != 0) {
