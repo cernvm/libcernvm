@@ -282,38 +282,6 @@ bool VBoxInstance::waitTillReady( DomainKeystore & keystore, const FiniteTaskPtr
     } else {
         if (pf) pf->done("Sessions are loaded");
     }
-    
-    // By the way, check if we have the extension pack installed
-    if (!this->hasExtPack()) {
-
-        // Create a progress feedback instance for the installer
-        FiniteTaskPtr pfInstall;
-        if (pf) pfInstall = pf->begin<FiniteTask>("Installing extension pack");
-
-        // Extension pack is released under PUEL license
-        // require the user to confirm before continuing
-        if (ui) {
-            if (ui->confirmLicense("VirtualBox Personal Use and Evaluation License (PUEL)", VBOX_PUEL_LICENSE) != UI_OK) {
-                // (User did not click OK)
-
-                // Send error
-                if (pf) pf->fail("User denied Oracle PUEL license");
-
-                // Abort
-                return false;
-            }
-        }
-
-        // Start extension pack installation
-        this->installExtPack(
-                keystore,
-                this->downloadProvider,
-                pfInstall
-            );
-
-    } else {
-        if (pf) pf->done("Extension pack is installed");
-    }
 
     if (pf) pf->complete("Hypervisor is ready");
 

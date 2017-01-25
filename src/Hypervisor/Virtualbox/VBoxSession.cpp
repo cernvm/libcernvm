@@ -649,42 +649,7 @@ void VBoxSession::ConfigureVM() {
         if (vC != vM)
             args << " --ioapic "                << vC;
 
-        // 6) VRDE
-        vM = machine->get("VRDE", "");
-        if (vM.empty() || (vM == "disabled")) {
-            args << " --vrde "                   << "on"
-                 << " --vrdeaddress "            << "127.0.0.1"
-                 << " --vrdeauthtype "           << "null"
-                 << " --vrdemulticon "           << "on"
-                 << " --vrdeport "               << rdpPort;
-        } else {
-
-            std::vector< std::string > argList;
-            std::map< std::string, std::string > vrdeOptions;
-            explodeStr( vM.substr(8, vM.length()-9), ", ", &argList );
-            parseLines( &argList, &vrdeOptions, ":", " ", 0, 1 );
-
-            // Stringify rtpPort
-            vC = ntos<int>(rdpPort);
-            
-            // Check for misconfigured VRDE
-            vM = ""; if (vrdeOptions.find("Address")!=vrdeOptions.end()) vM=vrdeOptions["Address"];
-            if (vM != "127.0.0.1")
-                args << " --vrdeaddress "        << "127.0.0.1";
-            vM = ""; if (vrdeOptions.find("Authentication type")!=vrdeOptions.end()) vM=vrdeOptions["Authentication type"];
-            if (vM != "null")
-                args << " --vrdeauthtype "        << "null";
-            vM = ""; if (vrdeOptions.find("Ports")!=vrdeOptions.end()) vM=vrdeOptions["Ports"];
-            if (vM != vC)
-                args << " --vrdeport "            << rdpPort;
-            vM = ""; if (vrdeOptions.find("MultiConn")!=vrdeOptions.end()) vM=vrdeOptions["MultiConn"];
-            if (vM != "on")
-                args << " --vrdemulticon "        << "on";
-
-            // And of course, enable
-            args << " --vrde "                    << "on";
-
-        }
+        // 6) VRDE: dropped support
 
         // 7) Boot medium
         vC = bootMedium; vM = machine->get("Boot Device (1)", "");
