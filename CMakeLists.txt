@@ -376,6 +376,10 @@ endif()
 if (WIN32)
 	# Fix: Disable Min/Max macros
 	add_definitions(-DNOMINMAX)
+    # Disable passed values in iterator check (shows warnings in Boost)
+    add_definitions(-D_SCL_SECURE_NO_WARNINGS)
+    # Disable gmtime usage check (might be unsafe)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif(WIN32)
 
 # Include project and headers
