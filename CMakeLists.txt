@@ -38,7 +38,7 @@ message(STATUS "Building libcernvm for arch: ${TARGET_ARCH}")
 
 # CernVM Library
 project ( libcernvm )
-set(VERSION "2.0.12")
+set(VERSION "2.0.13")
 
 # Erase default linker options
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
