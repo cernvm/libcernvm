@@ -24,7 +24,7 @@
 #include <CernVM/Hypervisor/Virtualbox/VBoxProbes.h>
 #include <CernVM/Utilities.h>
 
-#include <boost/filesystem.hpp> 
+#include <boost/filesystem.hpp>
 
 using namespace std;
 
@@ -47,13 +47,13 @@ const char kPathSeparator =
 /**
  *
  * Replace macros
- * 
+ *
  * Look for the specified macros in the iString and return a copy
  * where all of them are replaced with the values found in mapData map.
  *
  * This function looks for the following two patterms:
  *
- *  ${name}           : Replace with the value of the given variable name or 
+ *  ${name}           : Replace with the value of the given variable name or
  *                      with an empty string if it's missing.
  *  ${name:default}   : Replace with the variable value or the given default value.
  *
@@ -81,7 +81,7 @@ std::string macroReplace( ParameterMapPtr mapData, std::string iString ) {
         // Extract token value
         string token = iString.substr(tokStart+2, tokLen-2);
 //        CVMWA_LOG("Debug", "Token is '" << token << "'");
-        
+
         // Extract default
         string vDefault = "";
         iPos = token.find(":");
@@ -92,22 +92,22 @@ std::string macroReplace( ParameterMapPtr mapData, std::string iString ) {
 //            CVMWA_LOG("Debug", "Default is '" << vDefault << "', token is '" << token << "'" );
         }
 
-        
+
         // Look for token value
         string vValue = vDefault;
 //        CVMWA_LOG("Debug", "Checking value" );
         if (uData.find(token) != uData.end())
             vValue = uData[token];
-        
+
         // Replace value
 //        CVMWA_LOG("Debug", "Value is '" << vValue << "'" );
         iString = iString.substr(0,tokStart) + vValue + iString.substr(tokStart+tokLen+1);
-        
+
         // Move forward
 //        CVMWA_LOG("Debug", "String replaced" );
         lPos = tokStart + tokLen;
     }
-    
+
     // Return replaced data
     return iString;
     CRASH_REPORT_END;
@@ -150,7 +150,7 @@ bool cleanupFolder( const std::string& baseDir ) {
     CVMWA_LOG("Debug", "Erasing folder " << baseDir);
     rmdir(baseDir.c_str());
     return true;
-    
+
     CRASH_REPORT_END;
 }
 
@@ -168,7 +168,7 @@ int getPIDFromFile( std::string logPath ) {
 
     // Open input stream
     ifstream fIn(logFile.c_str(), ifstream::in);
-    
+
     // Read as few bytes as possible
     string inBufferLine;
     size_t iStart, iEnd, i1, i2;
@@ -219,7 +219,7 @@ bool vboxLogExists( std::string logPath ) {
 /////////////////////////////////////
 /////////////////////////////////////
 ////
-//// FSM implementation functions 
+//// FSM implementation functions
 ////
 /////////////////////////////////////
 /////////////////////////////////////
@@ -242,7 +242,7 @@ void VBoxSession::Initialize() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Load VirtualBox session 
+ * Load VirtualBox session
  */
 void VBoxSession::UpdateSession() {
     CRASH_REPORT_BEGIN;
@@ -272,7 +272,7 @@ void VBoxSession::UpdateSession() {
             // it means that the VM was destroyed externally.
             // Therefore we must flush the local variables
             local->clear();
-            
+
         }
 
         FSMSkew(3); // Destroyed state
@@ -303,7 +303,7 @@ void VBoxSession::UpdateSession() {
                 // UNKNOWN STATE //
                 CVMWA_LOG("ERROR", "Unknown state");
             }
-            
+
         } else {
             // ERROR //
             CVMWA_LOG("ERROR", "Missing state info");
@@ -521,7 +521,7 @@ void VBoxSession::CreateVM() {
             << vboxid
             << " --name "       << "IDE"
             << " --add "        << "ide";
-    
+
         ans = this->wrapExec(args.str(), NULL, NULL, execConfig);
         if (ans != 0) {
             // Destroy VM
@@ -540,7 +540,7 @@ void VBoxSession::CreateVM() {
             << " --name "       << "SATA"
             << " --add "        << "sata"
             << " --portcount 4";
-    
+
         ans = this->wrapExec(args.str(), NULL, NULL, execConfig);
         if (ans != 0) {
             // Destroy VM
@@ -558,7 +558,7 @@ void VBoxSession::CreateVM() {
             << vboxid
             << " --name "       << FLOPPYIO_CONTROLLER
             << " --add "        << "floppy";
-    
+
         ans = this->wrapExec(args.str(), NULL, NULL, execConfig);
         if (ans != 0) {
             // Destroy VM
@@ -630,8 +630,8 @@ void VBoxSession::ConfigureVM() {
         if (vM.find("%") != string::npos) vM = vM.substr(0, vM.length()-1);
         if (vC != vM)
         */
-        // 3) Always apply execution cap
-        args    << " --cpuexecutioncap "       << parameters->get("executionCap", "80");
+        // 3) Always apply execution cap (not for CernVM Launch)
+        // args    << " --cpuexecutioncap "       << parameters->get("executionCap", "80");
 
         // 4) VRAM
         vC = parameters->get("vram", "32"); vM = machine->get("VRAM size", "");
@@ -651,6 +651,10 @@ void VBoxSession::ConfigureVM() {
 
         // 6) VRDE: dropped support
 
+        // 6) New VBox: fix graphics adapter
+        if (hypervisor->version.compare(HypervisorVersion("6.1")) <= 0)
+            args << " --graphicscontroller vboxsvga";
+
         // 7) Boot medium
         vC = bootMedium; vM = machine->get("Boot Device (1)", "");
         std::transform(vM.begin(), vM.end(), vM.begin(), ::tolower);
@@ -669,15 +673,18 @@ void VBoxSession::ConfigureVM() {
 
         // 10) Enable graphical additions if instructed to do so
         if ((flags & HVF_GRAPHICAL) != 0) {
-            args << " --draganddrop "       << "bidirectional"
-                 << " --clipboard "         << "bidirectional";
+            args << " --draganddrop "       << "bidirectional";
+            if (hypervisor->version.compare(HypervisorVersion("6.1")) <= 0)
+                args << " --clipboard-mode "         << "bidirectional";
+            else
+                args << " --clipboard "         << "bidirectional";
         }
 
         // 11) Second nost-only NIC
         if ((flags & HVF_DUAL_NIC) != 0) {
             vM = machine->get("NIC 2", "");
             if (vM.empty() || (vM == "disabled")) {
-                args << " --nic2 "          << "hostonly" 
+                args << " --nic2 "          << "hostonly"
                      << " --hostonlyadapter2 \"" << local->get("hostonlyif") << "\"";
                 args << " --nictype2 "          << "virtio";
             }
@@ -812,7 +819,7 @@ void VBoxSession::ConfigNetwork() {
     int flags = parameters->getNum<int>("flags", 0);
     int ans;
 
-    // Check if we are NATing or if we are using the second NIC 
+    // Check if we are NATing or if we are using the second NIC
     if ((flags & HVF_DUAL_NIC) != 0) {
 
         // =============================================================================== //
@@ -1118,7 +1125,7 @@ void VBoxSession::ConfigureVMBoot() {
     // Get guest additions ISO file
     string additionsISO = boost::static_pointer_cast<VBoxInstance>(hypervisor)->hvGuestAdditions;
     if ( ((flags & HVF_GUEST_ADDITIONS) != 0) && !additionsISO.empty() ) {
-        
+
         // Mount dvddrive in guest additions controller without multi-attach
         ans = mountDisk( GUESTADD_CONTROLLER, GUESTADD_PORT, GUESTADD_DEVICE, T_DVD,
                          additionsISO, false );
@@ -1333,7 +1340,7 @@ void VBoxSession::CheckIntegrity() {
     }
 
     // Take this opportunity to update the machine configuration
-    machine->fromMap( &info, true );    
+    machine->fromMap( &info, true );
 
     // Skew towards network configuration
     if (!valid) {
@@ -1575,7 +1582,7 @@ void VBoxSession::StartVM() {
     int flags = parameters->getNum<int>("flags", 0);
     int ans;
 
-    // Add custom error detection on startVM 
+    // Add custom error detection on startVM
     SysExecConfig config(execConfig);
     config.handleErrString("VBoxManage: error:", 200);
 
@@ -1702,8 +1709,8 @@ int VBoxSession::open ( ) {
     CRASH_REPORT_BEGIN;
 
     // Reset properties
-    isAborting = false;    
-    
+    isAborting = false;
+
     // Start the FSM thread
     FSMThreadStart();
 
@@ -1757,7 +1764,7 @@ int VBoxSession::close ( bool unmonitored ) {
 int VBoxSession::resume ( ) {
     CRASH_REPORT_BEGIN;
     if (isAborting) return HVE_INVALID_STATE;
-    
+
     // Switch to running state
     FSMGoto(7);
 
@@ -1772,7 +1779,7 @@ int VBoxSession::resume ( ) {
  */
 int VBoxSession::reset ( ) {
     CRASH_REPORT_BEGIN;
-    return HVE_NOT_IMPLEMENTED;    
+    return HVE_NOT_IMPLEMENTED;
     CRASH_REPORT_END;
 }
 
@@ -1782,7 +1789,7 @@ int VBoxSession::reset ( ) {
 int VBoxSession::stop ( ) {
     CRASH_REPORT_BEGIN;
     if (isAborting) return HVE_INVALID_STATE;
-    
+
     // Switch to powerOff state
     FSMGoto(4);
 
@@ -1798,7 +1805,7 @@ int VBoxSession::stop ( ) {
 int VBoxSession::hibernate ( ) {
     CRASH_REPORT_BEGIN;
     if (isAborting) return HVE_INVALID_STATE;
-    
+
     // Switch to paused state
     FSMGoto(5);
 
@@ -1951,7 +1958,7 @@ std::string VBoxSession::getExtraInfo ( int extraInfo ) {
         CVMWA_LOG("Debug", "Getting video mode")
 
         //map<string, string> info = this->getMachineInfo( 2, 2000 );
-        
+
         /*
         for (std::map<string, string>::iterator it=info.begin(); it!=info.end(); ++it) {
             string pname = (*it).first;
@@ -1960,7 +1967,7 @@ std::string VBoxSession::getExtraInfo ( int extraInfo ) {
         }
         */
 
-        // Return cached video mode        
+        // Return cached video mode
         if (machine->contains("Video mode"))
             return machine->get("Video mode");
 
@@ -2002,7 +2009,7 @@ int VBoxSession::update ( bool waitTillInactive ) {
     // Wait until the FSM is not doing anything
     if (!waitTillInactive) {
         // Exit if the FSM is still active
-        if (FSMActive()) 
+        if (FSMActive())
             return HVE_SCHEDULED;
     }
     FSMWaitInactive();
@@ -2011,7 +2018,7 @@ int VBoxSession::update ( bool waitTillInactive ) {
     // Get current state
     int lastState = local->getNum<int>("state", 0);
     int newState = lastState;
-    
+
     // Check if log file is missing
     std::string logFile = machine->get("Log folder") + kPathSeparator + "VBox.log";
     if (file_exists(logFile)) {
@@ -2020,7 +2027,7 @@ int VBoxSession::update ( bool waitTillInactive ) {
         unsigned long long newFileTime = getFileTimeMs(logFile);
         if (lastLogTime != newFileTime) {
             lastLogTime = newFileTime;
-    
+
             // Create a log probe in order to extract as many information
             // as possible from a single pass.
             VBoxLogProbe logProbe( machine->get("Log folder") );
@@ -2033,8 +2040,8 @@ int VBoxSession::update ( bool waitTillInactive ) {
             // Check if we had a resolution change
             if (logProbe.hasResolutionChange) {
                 ostringstream oss;
-                oss << logProbe.resWidth << "x" 
-                    << logProbe.resHeight << "x" 
+                oss << logProbe.resWidth << "x"
+                    << logProbe.resHeight << "x"
                     << logProbe.resBpp;
 
                 // Check if video mode has changed
@@ -2060,7 +2067,7 @@ int VBoxSession::update ( bool waitTillInactive ) {
             }
 
         }
-        
+
     } else {
         // If the file has gone away, we are missing
         newState = SS_MISSING;
@@ -2237,7 +2244,7 @@ int VBoxSession::destroyVM ( const bool forwardErrors ) {
     args << "unregistervm"
         << " " << parameters->get("vboxid")
         << " --delete";
-    
+
     // Execute and handle errors
     ans = this->wrapExec(args.str(), NULL, NULL, execConfig);
     if (ans != 0) {
@@ -2318,10 +2325,10 @@ std::string VBoxSession::getUserData ( bool macroReplace ) {
 /**
  * Unmount a medium from the VirtulaBox Instance
  */
-int VBoxSession::unmountDisk ( const std::string & controller, 
-                               const std::string & port, 
-                               const std::string & device, 
-                               const VBoxDiskType & dtype, 
+int VBoxSession::unmountDisk ( const std::string & controller,
+                               const std::string & port,
+                               const std::string & device,
+                               const VBoxDiskType & dtype,
                                const bool deleteFile ) {
     CRASH_REPORT_BEGIN;
     if (isAborting) return HVE_INVALID_STATE;
@@ -2407,11 +2414,11 @@ int VBoxSession::unmountDisk ( const std::string & controller,
  * This function automatically unmounts a previously attached disk if the filenames
  * do not match.
  */
-int VBoxSession::mountDisk ( const std::string & controller, 
-                             const std::string & port, 
-                             const std::string & device, 
+int VBoxSession::mountDisk ( const std::string & controller,
+                             const std::string & port,
+                             const std::string & device,
                              const VBoxDiskType & dtype,
-                             const std::string & diskFile, 
+                             const std::string & diskFile,
                              bool multiAttach ) {
     CRASH_REPORT_BEGIN;
     if (isAborting) return HVE_INVALID_STATE;
@@ -2437,7 +2444,7 @@ int VBoxSession::mountDisk ( const std::string & controller,
 
     // (A) Unmount previously mounted disk if it's not what we want
     if (machine->contains( DISK_SLOT )) {
-        
+
         // Split on '('
         // (Line contents is something like "IDE (1, 0): image.vmdk (UUID: ...)")
         getKV( machine->get(DISK_SLOT), &kk, &kv, '(', 0 );
@@ -2446,7 +2453,7 @@ int VBoxSession::mountDisk ( const std::string & controller,
 
         if (kk.compare( diskFile ) == 0) {
 
-            // If the file is the one we want, we are done            
+            // If the file is the one we want, we are done
             return HVE_ALREADY_EXISTS;
 
         } else {
@@ -2484,10 +2491,10 @@ int VBoxSession::mountDisk ( const std::string & controller,
     // That's because before some version VirtualBox we need the disk UUID, while for others we need the full path
     string masterDiskPath = "\"" + diskFile + "\"";
     string masterDiskUUID = "";
-    
+
     // If we are doing multi-attach, try to use UUID-based mounting
     if (multiAttach) {
-        // Get a list of the disks in order to properly compute multi-attach 
+        // Get a list of the disks in order to properly compute multi-attach
         vector< map< const string, const string > > disks = boost::static_pointer_cast<VBoxInstance>(hypervisor)->getDiskList();
         for (vector< map<const string, const string> >::iterator i = disks.begin(); i != disks.end(); i++) {
             map<const string, const string> disk = *i;
@@ -2542,7 +2549,7 @@ int VBoxSession::mountDisk ( const std::string & controller,
             machine->set( DISK_SLOT, diskFile + " (UUID: " + diskGUID + ")" );
             return HVE_OK;
         }
-        
+
         // (B.2) Try to attach disk to the SATA controller using UUID (For older VirtualBox versions)
         args.str("");
         args << "storageattach "
@@ -2622,7 +2629,7 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
 
     vector<string> lines;
     string ifName = "", vboxName, ipServer, ipMin, ipMax;
-    
+
     // Progress update
     if (fp) fp->setMax(4);
 
@@ -2638,7 +2645,7 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
         return HVE_QUERY_ERROR;
     }
     if (fp) fp->done("Got adapter list");
-    
+
     // Check if there is really nothing
     if (lines.size() == 0) {
 
@@ -2649,7 +2656,7 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
             if (fp) fp->fail("Unable to create a host-only adapter", HVE_CREATE_ERROR);
             return HVE_CREATE_ERROR;
         }
-    
+
         // Repeat check
         if (fp) fp->doing("Validating created host-only adapter");
         ans = this->wrapExec("list hostonlyifs", &lines, NULL, execConfig);
@@ -2657,7 +2664,7 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
             if (fp) fp->fail("Unable to enumerate the host-only adapters", HVE_QUERY_ERROR);
             return HVE_QUERY_ERROR;
         }
-        
+
         // Still couldn't pick anything? Error!
         if (lines.size() == 0) {
             if (fp) fp->fail("Unable to verify the creation of the host-only adapter", HVE_NOT_VALIDATED);
@@ -2672,7 +2679,7 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
 
     // Fetch the interface in existance
     vector< map<const string, const string> > ifs = tokenizeList( &lines, ':' );
-    
+
     /////////////////////////////
     // [2] Check for DHCP
     /////////////////////////////
@@ -2687,7 +2694,7 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
 
     // Parse DHCP server info
     vector< map<const string, const string> > dhcps = tokenizeList( &lines, ':' );
-    
+
     // Initialize DHCP lookup variables
     bool    foundDHCPServer = false;
     string  foundIface      = "",
@@ -2707,11 +2714,11 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
         if (iface.find("VBoxNetworkName") == iface.end()) continue;
         if (iface.find("IPAddress") == iface.end()) continue;
         if (iface.find("NetworkMask") == iface.end()) continue;
-        
+
         // Fetch interface info
         ifName = iface["Name"];
         vboxName = iface["VBoxNetworkName"];
-        
+
         // Check if we have DHCP enabled on this interface
         bool hasDHCP = false;
         for (vector< map<const string, const string> >::iterator i = dhcps.begin(); i != dhcps.end(); i++) {
@@ -2721,15 +2728,15 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
 
             CVMWA_LOG("log", "Checking dhcp");
             mapDump(dhcp);
-            
+
             // The network has a DHCP server, check if it's running
             if (vboxName.compare(dhcp["NetworkName"]) == 0) {
                 if (dhcp["Enabled"].compare("Yes") == 0) {
                     hasDHCP = true;
                     break;
-                    
+
                 } else {
-                    
+
                     // Make sure the server has a valid IP address
                     bool updateIPInfo = false;
                     if (dhcp["IP"].compare("0.0.0.0") == 0) updateIPInfo=true;
@@ -2737,12 +2744,12 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
                     if (dhcp["upperIPAddress"].compare("0.0.0.0") == 0) updateIPInfo=true;
                     if (dhcp["NetworkMask"].compare("0.0.0.0") == 0) updateIPInfo=true;
                     if (updateIPInfo) {
-                        
+
                         // Prepare IP addresses
                         ipServer = _vbox_changeUpperIP( iface["IPAddress"], 100 );
                         ipMin = _vbox_changeUpperIP( iface["IPAddress"], 101 );
                         ipMax = _vbox_changeUpperIP( iface["IPAddress"], 254 );
-                    
+
                         // Modify server
                         ans = this->wrapExec(
                             "dhcpserver modify --ifname \"" + ifName + "\"" +
@@ -2752,20 +2759,20 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
                             " --upperip " + ipMax
                              , NULL, NULL, execConfig);
                         if (ans != 0) continue;
-                    
+
                     }
-                    
+
                     // Check if we can enable the server
                     ans = this->wrapExec("dhcpserver modify --ifname \"" + ifName + "\" --enable", NULL, NULL, execConfig);
                     if (ans == 0) {
                         hasDHCP = true;
                         break;
                     }
-                    
+
                 }
             }
         }
-        
+
         // Keep the information of the first interface found
         if (foundIface.empty()) {
             foundIface = ifName;
@@ -2773,28 +2780,28 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
             foundBaseIP = iface["IPAddress"];
             foundMask = iface["NetworkMask"];
         }
-        
+
         // If we found DHCP we are done
         if (hasDHCP) {
             foundDHCPServer = true;
             break;
         }
-        
+
     }
 
     // Information obtained
     if (fp) fp->done("DHCP information recovered");
 
-    
+
     // If there was no DHCP server, create one
     if (!foundDHCPServer) {
         if (fp) fp->doing("Adding a DHCP Server");
-        
+
         // Prepare IP addresses
         ipServer = _vbox_changeUpperIP( foundBaseIP, 100 );
         ipMin = _vbox_changeUpperIP( foundBaseIP, 101 );
         ipMax = _vbox_changeUpperIP( foundBaseIP, 254 );
-        
+
         // Add and start server
         ans = this->wrapExec(
             "dhcpserver add --ifname \"" + foundIface + "\"" +
@@ -2809,11 +2816,11 @@ int VBoxSession::getHostOnlyAdapter ( std::string * adapterName, const FiniteTas
             if (fp) fp->fail("Unable to add a DHCP server on the interface", HVE_CREATE_ERROR);
             return HVE_CREATE_ERROR;
         }
-                
+
     } else {
         if (fp) fp->done("DHCP Server is running");
     }
-    
+
     // Got my interface
     if (fp) fp->complete("Interface found");
     *adapterName = foundIface;
